@@ -28,7 +28,7 @@ module.exports = function(grunt) {
     watch: {
       //files: ['<%= jshint.files %>'],
       files: ['Gruntfile.js', 'src/**/*.js'],
-      tasks: ['browserify', 'umd']
+      tasks: ['browserify']
     },
 
     concat: {
@@ -97,28 +97,14 @@ module.exports = function(grunt) {
 
     browserify: {
       build: {
-        src: ['src/hoodie.js'],
+        src: ['src/hood.js'],
         dest: 'dist/hoodie.js',
         options: {
-          external: 'jquery'
+          external: 'jquery',
+          standalone: 'Hoodie'
         }
       }
     },
-
-    umd: {
-      all: {
-        src: 'dist/hoodie.js',
-        dest: 'dist/build.js',
-        globalAlias: 'Hoodie',
-        objectToExport: 'Hoodie',
-        deps: {
-          'default': ['jquery'],
-          amd: ['jquery'],
-          cjs: ['jquery'],
-          global: ['jquery']
-        }
-      }
-    }
 
   });
 
@@ -129,8 +115,6 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-groc');
   grunt.loadNpmTasks('grunt-shell');
-  grunt.loadNpmTasks('grunt-wrapup');
-  grunt.loadNpmTasks('grunt-umd');
 
   grunt.registerTask('default', ['jshint', 'concat', 'uglify']);
   grunt.registerTask('build', ['jshint', 'shell:test', 'concat', 'uglify']);

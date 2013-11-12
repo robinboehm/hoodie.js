@@ -2,9 +2,10 @@
 
 // Open stores
 // -------------
+
 var remoteStoreApi = require('./store');
 
-module.exports = function hoodieOpen() {
+module.exports = function () {
   var $extend = $.extend;
 
   // generic method to open a store. Used by

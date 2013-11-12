@@ -8,7 +8,7 @@
 var store = require('./store');
 var events = require('./events');
 
-module.exports = function (a, options) {
+module.exports = function (hoodie, options) {
 
   // name
   var storeName = options.name || 'store';

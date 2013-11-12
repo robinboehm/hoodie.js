@@ -14,7 +14,6 @@
 //     }
 //     return defer.promise()
 //
-
 var dfd = $.Deferred();
 
 // returns true if passed object is a promise (but not a deferred),

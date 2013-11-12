@@ -29,15 +29,12 @@
 //     taskStore.findAll().then( showAllTasks );
 //     taskStore.update('id123', {done: true});
 //
-var hoodie = require('../hoodie');
 var events = require('./events');
 var scopedStore = require('./scoped_store');
 var errors = require('./errors');
 var utils = require('util');
 
-module.exports = (function (options) {
-
-  var storeName;
+module.exports = function (hoodie, options) {
 
   // persistance logic
   var backend = {};
@@ -49,22 +46,16 @@ module.exports = (function (options) {
     hoodie: hoodie
   };
 
-  if (options) {
-    storeName = options.name || 'store';
-  } else {
-    storeName = 'store';
-  }
-
+  var storeName = options.name || 'store';
 
   // public API
-  var api = function (type, id) {
-
+  var api = function api(type, id) {
     var scopedOptions = $.extend(true, {
       type: type,
       id: id
     }, options);
 
-    return scopedStore(api, scopedOptions);
+    return scopedStore(hoodie, api, scopedOptions);
   };
 
   // add event API
@@ -423,5 +414,5 @@ module.exports = (function (options) {
 
   return api;
 
-}());
+};
 

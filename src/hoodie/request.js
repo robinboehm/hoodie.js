@@ -7,7 +7,7 @@
 //
 var promises = require('./promises');
 
-module.exports = function () {
+module.exports = (function () {
 
   var $extend = $.extend;
   var $ajax = $.ajax;
@@ -86,4 +86,4 @@ module.exports = function () {
   // public API
   //
   return request;
-};
+}());
