@@ -384,7 +384,7 @@ module.exports = function (hoodie, options) {
 
   var required = 'save find findAll remove removeAll'.split(' ');
 
-  required.forEach( function(methodName) {
+  required.forEach(function(methodName) {
 
     if (!options.backend[methodName]) {
       throw new Error('options.backend.' + methodName + ' must be passed.');
