@@ -21,22 +21,11 @@ module.exports = function (baseUrl) {
 
   var events = require('./hoodie/events')(self);
   var promises = require('./hoodie/promises');
-  var request = require('./hoodie/request');
   var connection = require('./hoodie/connection');
-  var UUID = require('./hoodie/uuid');
-  var dispose = require('./hoodie/dispose');
-  var open = require('./hoodie/open')();
-  var store = require('./hoodie/store')(self);
-  var task = require('./hoodie/task');
-  var config = require('./hoodie/config');
-  var account = require('./hoodie/account');
-  var remote = require('./hoodie/remote_store');
-
 
   //
   // Extending hoodie core
   //
-
 
   // * hoodie.bind
   // * hoodie.on
@@ -66,7 +55,7 @@ module.exports = function (baseUrl) {
 
 
   // * hoodie.request
-  self.request = request;
+  self.request = require('./hoodie/request');
 
 
   // * hoodie.isOnline
@@ -76,35 +65,35 @@ module.exports = function (baseUrl) {
 
 
   // * hoodie.uuid
-  self.UUID = UUID;
+  self.UUID = require('./hoodie/uuid');
 
 
   // * hoodie.dispose
-  self.dispose = dispose;
+  self.dispose = require('./hoodie/dispose');
 
 
   // * hoodie.open
-  self.open = open;
+  self.open = require('./hoodie/open')(self);
 
 
   // * hoodie.store
-  self.store = store;
+  self.store = require('./hoodie/store')(self);
 
 
   // * hoodie.task
-  self.task = task;
+  self.task = require('./hoodie/task');
 
 
   // * hoodie.config
-  self.config = config;
+  self.config = require('./hoodie/config');
 
 
   // * hoodie.account
-  self.account = account = require('./hoodie/account');
+  self.account = require('./hoodie/account');
 
 
   // * hoodie.remote
-  self.remote = remote;
+  self.remote = require('./hoodie/remote_store');
 
 
   //
@@ -112,13 +101,13 @@ module.exports = function (baseUrl) {
   //
 
   // set username from config (local store)
-  self.account.username = config.get('_account.username');
+  self.account.username = self.config.get('_account.username');
 
   // check for pending password reset
   self.account.checkPasswordReset();
 
   // clear config on sign out
-  events.on('account:signout', config.clear);
+  events.on('account:signout', self.config.clear);
 
   // hoodie.store
   self.store.patchIfNotPersistant();
@@ -135,7 +124,7 @@ module.exports = function (baseUrl) {
   // we use a closure to not pass the username to connect, as it
   // would set the name of the remote store, which is not the username.
   self.account.authenticate().then(function( /* username */ ) {
-    remote.connect();
+    self.remote.connect();
   });
 
   // check connection when browser goes online / offline

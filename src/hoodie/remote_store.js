@@ -43,7 +43,7 @@ var promises = require('./promises');
 var request = require('./request');
 var storeApi = require('./store');
 
-module.exports = function (options) {
+module.exports = function (hoodie, options) {
 
   var remoteStore = {};
 
@@ -155,8 +155,7 @@ module.exports = function (options) {
     });
   };
 
-
-  var remote = storeApi({
+  var remote = storeApi(hoodie, {
 
     name: options.name,
 

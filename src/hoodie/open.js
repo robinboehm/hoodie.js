@@ -5,7 +5,7 @@
 
 var remoteStoreApi = require('./remote_store');
 
-module.exports = function () {
+module.exports = function (hoodie) {
   var $extend = $.extend;
 
   // generic method to open a store. Used by
@@ -24,7 +24,7 @@ module.exports = function () {
       name: storeName
     });
 
-    return remoteStoreApi(options);
+    return remoteStoreApi(hoodie, options);
   }
 
   //

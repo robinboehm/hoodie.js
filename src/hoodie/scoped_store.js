@@ -5,13 +5,19 @@
 // same as store, but with type preset to an initially
 // passed value.
 //
-var store = require('./store');
 var events = require('./events');
 
 module.exports = function (hoodie, options) {
 
   // name
-  var storeName = options.name || 'store';
+  var storeName;
+
+  if (!this.options.name) {
+    storeName = 'store';
+  } else {
+    storeName = this.options.name;
+  }
+
   var type = options.type;
   var id = options.id;
 
@@ -28,47 +34,47 @@ module.exports = function (hoodie, options) {
 
     //
     api.save = function save(id, properties, options) {
-      return store.save(type, id, properties, options);
+      return hoodie.store.save(type, id, properties, options);
     };
 
     //
     api.add = function add(properties, options) {
-      return store.add(type, properties, options);
+      return hoodie.store.add(type, properties, options);
     };
 
     //
     api.find = function find(id) {
-      return store.find(type, id);
+      return hoodie.store.find(type, id);
     };
 
     //
     api.findOrAdd = function findOrAdd(id, properties) {
-      return store.findOrAdd(type, id, properties);
+      return hoodie.store.findOrAdd(type, id, properties);
     };
 
     //
     api.findAll = function findAll(options) {
-      return store.findAll(type, options);
+      return hoodie.store.findAll(type, options);
     };
 
     //
     api.update = function update(id, objectUpdate, options) {
-      return store.update(type, id, objectUpdate, options);
+      return hoodie.store.update(type, id, objectUpdate, options);
     };
 
     //
     api.updateAll = function updateAll(objectUpdate, options) {
-      return store.updateAll(type, objectUpdate, options);
+      return hoodie.store.updateAll(type, objectUpdate, options);
     };
 
     //
     api.remove = function remove(id, options) {
-      return store.remove(type, id, options);
+      return hoodie.store.remove(type, id, options);
     };
 
     //
     api.removeAll = function removeAll(options) {
-      return store.removeAll(type, options);
+      return hoodie.store.removeAll(type, options);
     };
 
   }
@@ -84,28 +90,28 @@ module.exports = function (hoodie, options) {
 
     //
     api.save = function save(properties, options) {
-      return store.save(type, id, properties, options);
+      return hoodie.store.save(type, id, properties, options);
     };
 
     //
     api.find = function find() {
-      return store.find(type, id);
+      return hoodie.store.find(type, id);
     };
 
     //
     api.update = function update(objectUpdate, options) {
-      return store.update(type, id, objectUpdate, options);
+      return hoodie.store.update(type, id, objectUpdate, options);
     };
 
     //
     api.remove = function remove(options) {
-      return store.remove(type, id, options);
+      return hoodie.store.remove(type, id, options);
     };
   }
 
   //
-  api.decoratePromises = store.decoratePromises;
-  api.validate = store.validate;
+  api.decoratePromises = hoodie.store.decoratePromises;
+  api.validate = hoodie.store.validate;
 
   return api;
 

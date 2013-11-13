@@ -6,7 +6,7 @@
 
 var events = require('./events');
 
-module.exports = function (taskApi, options) {
+module.exports = function (hoodie, taskApi, options) {
 
   var type = options.type;
   var id = options.id;
