@@ -58,15 +58,19 @@ module.exports = function (hoodie, options) {
     storeName = this.options.name;
   }
 
-  // public API
-  var api = (function api(type, id) {
+  var api = {};
+
+  var util = require('util');
+
+  util.inherits(api, function api(type, id) {
+
     var scopedOptions = $.extend(true, {
       type: type,
       id: id
     }, self.options);
 
     return scopedStore.call(this, hoodie, api, scopedOptions);
-  }(api));
+  });
 
   // add event API
   events({

@@ -76,29 +76,29 @@ module.exports = function (baseUrl) {
   self.open = require('./hoodie/open')(self);
 
 
-  //// * hoodie.store
+  // * hoodie.store
   //self.store = require('./hoodie/store')(self);
 
 
-  //// * hoodie.task
+  // * hoodie.task
   //self.task = require('./hoodie/task');
 
 
-  //// * hoodie.config
+  // * hoodie.config
   //self.config = require('./hoodie/config');
 
 
-  //// * hoodie.account
+  // * hoodie.account
   //self.account = require('./hoodie/account');
 
 
-  //// * hoodie.remote
+  // * hoodie.remote
   //self.remote = require('./hoodie/remote_store');
 
 
-  ////
-  //// Initializations
-  ////
+  //
+  // Initializations
+  //
 
   //// set username from config (local store)
   //self.account.username = self.config.get('_account.username');
