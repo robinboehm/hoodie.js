@@ -3,7 +3,7 @@
 // Open stores
 // -------------
 
-var remoteStoreApi = require('./remote_store');
+var remoteStore = require('./remote_store');
 
 module.exports = function (hoodie) {
   var $extend = $.extend;
@@ -24,7 +24,8 @@ module.exports = function (hoodie) {
       name: storeName
     });
 
-    return remoteStoreApi(hoodie, options);
+
+    return remoteStore.call(this, hoodie, options);
   }
 
   //

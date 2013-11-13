@@ -76,64 +76,64 @@ module.exports = function (baseUrl) {
   self.open = require('./hoodie/open')(self);
 
 
-  // * hoodie.store
-  self.store = require('./hoodie/store')(self);
+  //// * hoodie.store
+  //self.store = require('./hoodie/store')(self);
 
 
-  // * hoodie.task
-  self.task = require('./hoodie/task');
+  //// * hoodie.task
+  //self.task = require('./hoodie/task');
 
 
-  // * hoodie.config
-  self.config = require('./hoodie/config');
+  //// * hoodie.config
+  //self.config = require('./hoodie/config');
 
 
-  // * hoodie.account
-  self.account = require('./hoodie/account');
+  //// * hoodie.account
+  //self.account = require('./hoodie/account');
 
 
-  // * hoodie.remote
-  self.remote = require('./hoodie/remote_store');
+  //// * hoodie.remote
+  //self.remote = require('./hoodie/remote_store');
 
 
-  //
-  // Initializations
-  //
+  ////
+  //// Initializations
+  ////
 
-  // set username from config (local store)
-  self.account.username = self.config.get('_account.username');
+  //// set username from config (local store)
+  //self.account.username = self.config.get('_account.username');
 
-  // check for pending password reset
-  self.account.checkPasswordReset();
+  //// check for pending password reset
+  //self.account.checkPasswordReset();
 
-  // clear config on sign out
-  events.on('account:signout', self.config.clear);
+  //// clear config on sign out
+  //events.on('account:signout', self.config.clear);
 
-  // hoodie.store
-  self.store.patchIfNotPersistant();
-  self.store.subscribeToOutsideEvents();
-  self.store.bootstrapDirtyObjects();
+  //// hoodie.store
+  //self.store.patchIfNotPersistant();
+  //self.store.subscribeToOutsideEvents();
+  //self.store.bootstrapDirtyObjects();
 
-  // hoodie.remote
-  self.remote.subscribeToEvents();
+  //// hoodie.remote
+  //self.remote.subscribeToEvents();
 
-  // hoodie.task
-  self.task.subscribeToStoreEvents();
+  //// hoodie.task
+  //self.task.subscribeToStoreEvents();
 
-  // authenticate
-  // we use a closure to not pass the username to connect, as it
-  // would set the name of the remote store, which is not the username.
-  self.account.authenticate().then(function( /* username */ ) {
-    self.remote.connect();
-  });
+  //// authenticate
+  //// we use a closure to not pass the username to connect, as it
+  //// would set the name of the remote store, which is not the username.
+  //self.account.authenticate().then(function( [> username <] ) {
+    //self.remote.connect();
+  //});
 
-  // check connection when browser goes online / offline
-  global.addEventListener('online', self.checkConnection, false);
-  global.addEventListener('offline', self.checkConnection, false);
+  //// check connection when browser goes online / offline
+  //global.addEventListener('online', self.checkConnection, false);
+  //global.addEventListener('offline', self.checkConnection, false);
 
 
-  // start checking connection
-  self.checkConnection();
+  //// start checking connection
+  //self.checkConnection();
 
 };
 

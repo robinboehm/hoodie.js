@@ -59,14 +59,14 @@ module.exports = function (hoodie, options) {
   }
 
   // public API
-  var api = function api(type, id) {
+  var api = (function api(type, id) {
     var scopedOptions = $.extend(true, {
       type: type,
       id: id
     }, self.options);
 
-    return scopedStore(hoodie, api, scopedOptions);
-  };
+    return scopedStore.call(this, hoodie, api, scopedOptions);
+  }(api));
 
   // add event API
   events({

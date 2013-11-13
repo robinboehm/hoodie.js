@@ -100,7 +100,8 @@ module.exports = function(grunt) {
         dest: 'dist/hoodie.js',
         options: {
           external: 'jquery',
-          standalone: 'Hoodie'
+          standalone: 'Hoodie',
+          debug: true
         }
       }
     },
