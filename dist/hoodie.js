@@ -1,787 +1,49 @@
-!function(e){"object"==typeof exports?module.exports=e():"function"==typeof define&&define.amd?define(e):"undefined"!=typeof window?window.Hoodie=e():"undefined"!=typeof global?global.Hoodie=e():"undefined"!=typeof self&&(self.Hoodie=e())}(function(){var define,module,exports;
-return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+// Hoodie.js - 0.4.0
+// https://github.com/hoodiehq/hoodie.js
+// Copyright 2012, 2013 https://github.com/hoodiehq/
+// Licensed Apache License 2.0
 
+(function(global) {
+'use strict'
 
-//
-// The shims in this file are not fully implemented shims for the ES5
-// features, but do work for the particular usecases there is in
-// the other modules.
-//
+/* global open:true */
 
-var toString = Object.prototype.toString;
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-// Array.isArray is supported in IE9
-function isArray(xs) {
-  return toString.call(xs) === '[object Array]';
-}
-exports.isArray = typeof Array.isArray === 'function' ? Array.isArray : isArray;
-
-// Array.prototype.indexOf is supported in IE9
-exports.indexOf = function indexOf(xs, x) {
-  if (xs.indexOf) return xs.indexOf(x);
-  for (var i = 0; i < xs.length; i++) {
-    if (x === xs[i]) return i;
-  }
-  return -1;
-};
-
-// Array.prototype.filter is supported in IE9
-exports.filter = function filter(xs, fn) {
-  if (xs.filter) return xs.filter(fn);
-  var res = [];
-  for (var i = 0; i < xs.length; i++) {
-    if (fn(xs[i], i, xs)) res.push(xs[i]);
-  }
-  return res;
-};
-
-// Array.prototype.forEach is supported in IE9
-exports.forEach = function forEach(xs, fn, self) {
-  if (xs.forEach) return xs.forEach(fn, self);
-  for (var i = 0; i < xs.length; i++) {
-    fn.call(self, xs[i], i, xs);
-  }
-};
-
-// Array.prototype.map is supported in IE9
-exports.map = function map(xs, fn) {
-  if (xs.map) return xs.map(fn);
-  var out = new Array(xs.length);
-  for (var i = 0; i < xs.length; i++) {
-    out[i] = fn(xs[i], i, xs);
-  }
-  return out;
-};
-
-// Array.prototype.reduce is supported in IE9
-exports.reduce = function reduce(array, callback, opt_initialValue) {
-  if (array.reduce) return array.reduce(callback, opt_initialValue);
-  var value, isValueSet = false;
-
-  if (2 < arguments.length) {
-    value = opt_initialValue;
-    isValueSet = true;
-  }
-  for (var i = 0, l = array.length; l > i; ++i) {
-    if (array.hasOwnProperty(i)) {
-      if (isValueSet) {
-        value = callback(value, array[i], i, array);
-      }
-      else {
-        value = array[i];
-        isValueSet = true;
-      }
-    }
-  }
-
-  return value;
-};
-
-// String.prototype.substr - negative index don't work in IE8
-if ('ab'.substr(-1) !== 'b') {
-  exports.substr = function (str, start, length) {
-    // did we get a negative start, calculate how much it is from the beginning of the string
-    if (start < 0) start = str.length + start;
-
-    // call the original function
-    return str.substr(start, length);
-  };
-} else {
-  exports.substr = function (str, start, length) {
-    return str.substr(start, length);
-  };
-}
-
-// String.prototype.trim is supported in IE9
-exports.trim = function (str) {
-  if (str.trim) return str.trim();
-  return str.replace(/^\s+|\s+$/g, '');
-};
-
-// Function.prototype.bind is supported in IE9
-exports.bind = function () {
-  var args = Array.prototype.slice.call(arguments);
-  var fn = args.shift();
-  if (fn.bind) return fn.bind.apply(fn, args);
-  var self = args.shift();
-  return function () {
-    fn.apply(self, args.concat([Array.prototype.slice.call(arguments)]));
-  };
-};
-
-// Object.create is supported in IE9
-function create(prototype, properties) {
-  var object;
-  if (prototype === null) {
-    object = { '__proto__' : null };
-  }
-  else {
-    if (typeof prototype !== 'object') {
-      throw new TypeError(
-        'typeof prototype[' + (typeof prototype) + '] != \'object\''
-      );
-    }
-    var Type = function () {};
-    Type.prototype = prototype;
-    object = new Type();
-    object.__proto__ = prototype;
-  }
-  if (typeof properties !== 'undefined' && Object.defineProperties) {
-    Object.defineProperties(object, properties);
-  }
-  return object;
-}
-exports.create = typeof Object.create === 'function' ? Object.create : create;
-
-// Object.keys and Object.getOwnPropertyNames is supported in IE9 however
-// they do show a description and number property on Error objects
-function notObject(object) {
-  return ((typeof object != "object" && typeof object != "function") || object === null);
-}
-
-function keysShim(object) {
-  if (notObject(object)) {
-    throw new TypeError("Object.keys called on a non-object");
-  }
-
-  var result = [];
-  for (var name in object) {
-    if (hasOwnProperty.call(object, name)) {
-      result.push(name);
-    }
-  }
-  return result;
-}
-
-// getOwnPropertyNames is almost the same as Object.keys one key feature
-//  is that it returns hidden properties, since that can't be implemented,
-//  this feature gets reduced so it just shows the length property on arrays
-function propertyShim(object) {
-  if (notObject(object)) {
-    throw new TypeError("Object.getOwnPropertyNames called on a non-object");
-  }
-
-  var result = keysShim(object);
-  if (exports.isArray(object) && exports.indexOf(object, 'length') === -1) {
-    result.push('length');
-  }
-  return result;
-}
-
-var keys = typeof Object.keys === 'function' ? Object.keys : keysShim;
-var getOwnPropertyNames = typeof Object.getOwnPropertyNames === 'function' ?
-  Object.getOwnPropertyNames : propertyShim;
-
-if (new Error().hasOwnProperty('description')) {
-  var ERROR_PROPERTY_FILTER = function (obj, array) {
-    if (toString.call(obj) === '[object Error]') {
-      array = exports.filter(array, function (name) {
-        return name !== 'description' && name !== 'number' && name !== 'message';
-      });
-    }
-    return array;
-  };
-
-  exports.keys = function (object) {
-    return ERROR_PROPERTY_FILTER(object, keys(object));
-  };
-  exports.getOwnPropertyNames = function (object) {
-    return ERROR_PROPERTY_FILTER(object, getOwnPropertyNames(object));
-  };
-} else {
-  exports.keys = keys;
-  exports.getOwnPropertyNames = getOwnPropertyNames;
-}
-
-// Object.getOwnPropertyDescriptor - supported in IE8 but only on dom elements
-function valueObject(value, key) {
-  return { value: value[key] };
-}
-
-if (typeof Object.getOwnPropertyDescriptor === 'function') {
-  try {
-    Object.getOwnPropertyDescriptor({'a': 1}, 'a');
-    exports.getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-  } catch (e) {
-    // IE8 dom element issue - use a try catch and default to valueObject
-    exports.getOwnPropertyDescriptor = function (value, key) {
-      try {
-        return Object.getOwnPropertyDescriptor(value, key);
-      } catch (e) {
-        return valueObject(value, key);
-      }
-    };
-  }
-} else {
-  exports.getOwnPropertyDescriptor = valueObject;
-}
-
-},{}],2:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-var shims = require('_shims');
-
-var formatRegExp = /%[sdj%]/g;
-exports.format = function(f) {
-  if (!isString(f)) {
-    var objects = [];
-    for (var i = 0; i < arguments.length; i++) {
-      objects.push(inspect(arguments[i]));
-    }
-    return objects.join(' ');
-  }
-
-  var i = 1;
-  var args = arguments;
-  var len = args.length;
-  var str = String(f).replace(formatRegExp, function(x) {
-    if (x === '%%') return '%';
-    if (i >= len) return x;
-    switch (x) {
-      case '%s': return String(args[i++]);
-      case '%d': return Number(args[i++]);
-      case '%j':
-        try {
-          return JSON.stringify(args[i++]);
-        } catch (_) {
-          return '[Circular]';
-        }
-      default:
-        return x;
-    }
-  });
-  for (var x = args[i]; i < len; x = args[++i]) {
-    if (isNull(x) || !isObject(x)) {
-      str += ' ' + x;
-    } else {
-      str += ' ' + inspect(x);
-    }
-  }
-  return str;
-};
-
-/**
- * Echos the value of a value. Trys to print the value out
- * in the best way possible given the different types.
- *
- * @param {Object} obj The object to print out.
- * @param {Object} opts Optional options object that alters the output.
- */
-/* legacy: obj, showHidden, depth, colors*/
-function inspect(obj, opts) {
-  // default options
-  var ctx = {
-    seen: [],
-    stylize: stylizeNoColor
-  };
-  // legacy...
-  if (arguments.length >= 3) ctx.depth = arguments[2];
-  if (arguments.length >= 4) ctx.colors = arguments[3];
-  if (isBoolean(opts)) {
-    // legacy...
-    ctx.showHidden = opts;
-  } else if (opts) {
-    // got an "options" object
-    exports._extend(ctx, opts);
-  }
-  // set default options
-  if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
-  if (isUndefined(ctx.depth)) ctx.depth = 2;
-  if (isUndefined(ctx.colors)) ctx.colors = false;
-  if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
-  if (ctx.colors) ctx.stylize = stylizeWithColor;
-  return formatValue(ctx, obj, ctx.depth);
-}
-exports.inspect = inspect;
-
-
-// http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
-inspect.colors = {
-  'bold' : [1, 22],
-  'italic' : [3, 23],
-  'underline' : [4, 24],
-  'inverse' : [7, 27],
-  'white' : [37, 39],
-  'grey' : [90, 39],
-  'black' : [30, 39],
-  'blue' : [34, 39],
-  'cyan' : [36, 39],
-  'green' : [32, 39],
-  'magenta' : [35, 39],
-  'red' : [31, 39],
-  'yellow' : [33, 39]
-};
-
-// Don't use 'blue' not visible on cmd.exe
-inspect.styles = {
-  'special': 'cyan',
-  'number': 'yellow',
-  'boolean': 'yellow',
-  'undefined': 'grey',
-  'null': 'bold',
-  'string': 'green',
-  'date': 'magenta',
-  // "name": intentionally not styling
-  'regexp': 'red'
-};
-
-
-function stylizeWithColor(str, styleType) {
-  var style = inspect.styles[styleType];
-
-  if (style) {
-    return '\u001b[' + inspect.colors[style][0] + 'm' + str +
-           '\u001b[' + inspect.colors[style][1] + 'm';
-  } else {
-    return str;
-  }
-}
-
-
-function stylizeNoColor(str, styleType) {
-  return str;
-}
-
-
-function arrayToHash(array) {
-  var hash = {};
-
-  shims.forEach(array, function(val, idx) {
-    hash[val] = true;
-  });
-
-  return hash;
-}
-
-
-function formatValue(ctx, value, recurseTimes) {
-  // Provide a hook for user-specified inspect functions.
-  // Check that value is an object with an inspect function on it
-  if (ctx.customInspect &&
-      value &&
-      isFunction(value.inspect) &&
-      // Filter out the util module, it's inspect function is special
-      value.inspect !== exports.inspect &&
-      // Also filter out any prototype objects using the circular check.
-      !(value.constructor && value.constructor.prototype === value)) {
-    var ret = value.inspect(recurseTimes);
-    if (!isString(ret)) {
-      ret = formatValue(ctx, ret, recurseTimes);
-    }
-    return ret;
-  }
-
-  // Primitive types cannot have properties
-  var primitive = formatPrimitive(ctx, value);
-  if (primitive) {
-    return primitive;
-  }
-
-  // Look up the keys of the object.
-  var keys = shims.keys(value);
-  var visibleKeys = arrayToHash(keys);
-
-  if (ctx.showHidden) {
-    keys = shims.getOwnPropertyNames(value);
-  }
-
-  // Some type of object without properties can be shortcutted.
-  if (keys.length === 0) {
-    if (isFunction(value)) {
-      var name = value.name ? ': ' + value.name : '';
-      return ctx.stylize('[Function' + name + ']', 'special');
-    }
-    if (isRegExp(value)) {
-      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
-    }
-    if (isDate(value)) {
-      return ctx.stylize(Date.prototype.toString.call(value), 'date');
-    }
-    if (isError(value)) {
-      return formatError(value);
-    }
-  }
-
-  var base = '', array = false, braces = ['{', '}'];
-
-  // Make Array say that they are Array
-  if (isArray(value)) {
-    array = true;
-    braces = ['[', ']'];
-  }
-
-  // Make functions say that they are functions
-  if (isFunction(value)) {
-    var n = value.name ? ': ' + value.name : '';
-    base = ' [Function' + n + ']';
-  }
-
-  // Make RegExps say that they are RegExps
-  if (isRegExp(value)) {
-    base = ' ' + RegExp.prototype.toString.call(value);
-  }
-
-  // Make dates with properties first say the date
-  if (isDate(value)) {
-    base = ' ' + Date.prototype.toUTCString.call(value);
-  }
-
-  // Make error with message first say the error
-  if (isError(value)) {
-    base = ' ' + formatError(value);
-  }
-
-  if (keys.length === 0 && (!array || value.length == 0)) {
-    return braces[0] + base + braces[1];
-  }
-
-  if (recurseTimes < 0) {
-    if (isRegExp(value)) {
-      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
-    } else {
-      return ctx.stylize('[Object]', 'special');
-    }
-  }
-
-  ctx.seen.push(value);
-
-  var output;
-  if (array) {
-    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
-  } else {
-    output = keys.map(function(key) {
-      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
-    });
-  }
-
-  ctx.seen.pop();
-
-  return reduceToSingleString(output, base, braces);
-}
-
-
-function formatPrimitive(ctx, value) {
-  if (isUndefined(value))
-    return ctx.stylize('undefined', 'undefined');
-  if (isString(value)) {
-    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
-                                             .replace(/'/g, "\\'")
-                                             .replace(/\\"/g, '"') + '\'';
-    return ctx.stylize(simple, 'string');
-  }
-  if (isNumber(value))
-    return ctx.stylize('' + value, 'number');
-  if (isBoolean(value))
-    return ctx.stylize('' + value, 'boolean');
-  // For some reason typeof null is "object", so special case here.
-  if (isNull(value))
-    return ctx.stylize('null', 'null');
-}
-
-
-function formatError(value) {
-  return '[' + Error.prototype.toString.call(value) + ']';
-}
-
-
-function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
-  var output = [];
-  for (var i = 0, l = value.length; i < l; ++i) {
-    if (hasOwnProperty(value, String(i))) {
-      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
-          String(i), true));
-    } else {
-      output.push('');
-    }
-  }
-
-  shims.forEach(keys, function(key) {
-    if (!key.match(/^\d+$/)) {
-      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
-          key, true));
-    }
-  });
-  return output;
-}
-
-
-function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
-  var name, str, desc;
-  desc = shims.getOwnPropertyDescriptor(value, key) || { value: value[key] };
-  if (desc.get) {
-    if (desc.set) {
-      str = ctx.stylize('[Getter/Setter]', 'special');
-    } else {
-      str = ctx.stylize('[Getter]', 'special');
-    }
-  } else {
-    if (desc.set) {
-      str = ctx.stylize('[Setter]', 'special');
-    }
-  }
-
-  if (!hasOwnProperty(visibleKeys, key)) {
-    name = '[' + key + ']';
-  }
-  if (!str) {
-    if (shims.indexOf(ctx.seen, desc.value) < 0) {
-      if (isNull(recurseTimes)) {
-        str = formatValue(ctx, desc.value, null);
-      } else {
-        str = formatValue(ctx, desc.value, recurseTimes - 1);
-      }
-      if (str.indexOf('\n') > -1) {
-        if (array) {
-          str = str.split('\n').map(function(line) {
-            return '  ' + line;
-          }).join('\n').substr(2);
-        } else {
-          str = '\n' + str.split('\n').map(function(line) {
-            return '   ' + line;
-          }).join('\n');
-        }
-      }
-    } else {
-      str = ctx.stylize('[Circular]', 'special');
-    }
-  }
-  if (isUndefined(name)) {
-    if (array && key.match(/^\d+$/)) {
-      return str;
-    }
-    name = JSON.stringify('' + key);
-    if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
-      name = name.substr(1, name.length - 2);
-      name = ctx.stylize(name, 'name');
-    } else {
-      name = name.replace(/'/g, "\\'")
-                 .replace(/\\"/g, '"')
-                 .replace(/(^"|"$)/g, "'");
-      name = ctx.stylize(name, 'string');
-    }
-  }
-
-  return name + ': ' + str;
-}
-
-
-function reduceToSingleString(output, base, braces) {
-  var numLinesEst = 0;
-  var length = shims.reduce(output, function(prev, cur) {
-    numLinesEst++;
-    if (cur.indexOf('\n') >= 0) numLinesEst++;
-    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
-  }, 0);
-
-  if (length > 60) {
-    return braces[0] +
-           (base === '' ? '' : base + '\n ') +
-           ' ' +
-           output.join(',\n  ') +
-           ' ' +
-           braces[1];
-  }
-
-  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
-}
-
-
-// NOTE: These type checking functions intentionally don't use `instanceof`
-// because it is fragile and can be easily faked with `Object.create()`.
-function isArray(ar) {
-  return shims.isArray(ar);
-}
-exports.isArray = isArray;
-
-function isBoolean(arg) {
-  return typeof arg === 'boolean';
-}
-exports.isBoolean = isBoolean;
-
-function isNull(arg) {
-  return arg === null;
-}
-exports.isNull = isNull;
-
-function isNullOrUndefined(arg) {
-  return arg == null;
-}
-exports.isNullOrUndefined = isNullOrUndefined;
-
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-exports.isNumber = isNumber;
-
-function isString(arg) {
-  return typeof arg === 'string';
-}
-exports.isString = isString;
-
-function isSymbol(arg) {
-  return typeof arg === 'symbol';
-}
-exports.isSymbol = isSymbol;
-
-function isUndefined(arg) {
-  return arg === void 0;
-}
-exports.isUndefined = isUndefined;
-
-function isRegExp(re) {
-  return isObject(re) && objectToString(re) === '[object RegExp]';
-}
-exports.isRegExp = isRegExp;
-
-function isObject(arg) {
-  return typeof arg === 'object' && arg;
-}
-exports.isObject = isObject;
-
-function isDate(d) {
-  return isObject(d) && objectToString(d) === '[object Date]';
-}
-exports.isDate = isDate;
-
-function isError(e) {
-  return isObject(e) && objectToString(e) === '[object Error]';
-}
-exports.isError = isError;
-
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-exports.isFunction = isFunction;
-
-function isPrimitive(arg) {
-  return arg === null ||
-         typeof arg === 'boolean' ||
-         typeof arg === 'number' ||
-         typeof arg === 'string' ||
-         typeof arg === 'symbol' ||  // ES6 symbol
-         typeof arg === 'undefined';
-}
-exports.isPrimitive = isPrimitive;
-
-function isBuffer(arg) {
-  return arg && typeof arg === 'object'
-    && typeof arg.copy === 'function'
-    && typeof arg.fill === 'function'
-    && typeof arg.binarySlice === 'function'
-  ;
-}
-exports.isBuffer = isBuffer;
-
-function objectToString(o) {
-  return Object.prototype.toString.call(o);
-}
-
-
-function pad(n) {
-  return n < 10 ? '0' + n.toString(10) : n.toString(10);
-}
-
-
-var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-              'Oct', 'Nov', 'Dec'];
-
-// 26 Feb 16:19:34
-function timestamp() {
-  var d = new Date();
-  var time = [pad(d.getHours()),
-              pad(d.getMinutes()),
-              pad(d.getSeconds())].join(':');
-  return [d.getDate(), months[d.getMonth()], time].join(' ');
-}
-
-
-// log is just a thin wrapper to console.log that prepends a timestamp
-exports.log = function() {
-  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
-};
-
-
-/**
- * Inherit the prototype methods from one constructor into another.
- *
- * The Function.prototype.inherits from lang.js rewritten as a standalone
- * function (not on Function.prototype). NOTE: If this file is to be loaded
- * during bootstrapping this function needs to be rewritten using some native
- * functions as prototype setup using normal JavaScript does not work as
- * expected during bootstrapping (see mirror.js in r114903).
- *
- * @param {function} ctor Constructor function which needs to inherit the
- *     prototype.
- * @param {function} superCtor Constructor function to inherit prototype from.
- */
-exports.inherits = function(ctor, superCtor) {
-  ctor.super_ = superCtor;
-  ctor.prototype = shims.create(superCtor.prototype, {
-    constructor: {
-      value: ctor,
-      enumerable: false,
-      writable: true,
-      configurable: true
-    }
-  });
-};
-
-exports._extend = function(origin, add) {
-  // Don't do anything if add isn't an object
-  if (!add || !isObject(add)) return origin;
-
-  var keys = shims.keys(add);
-  var i = keys.length;
-  while (i--) {
-    origin[keys[i]] = add[keys[i]];
-  }
-  return origin;
-};
-
-function hasOwnProperty(obj, prop) {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-},{"_shims":1}],3:[function(require,module,exports){
 // Hoodie Core
 // -------------
 //
 // the door to world domination (apps)
 //
+//
+var events = require('./hoodie/events');
+var promises = require('./hoodie/promises');
+var request = require('./hoodie/request');
+var connection = require('./hoodie/connection');
+var UUID = require('./hoodie/uuid');
+var dispose = require('./hoodie/dispose');
+var open = require('./hoodie/open');
+var store = require('./hoodie/store');
+var task = require('./hoodie/task');
+var config = require('./hoodie/config');
+var account = require('./hoodie/account');
+var remote = require('./hoodie/remote_store');
+var account = require('./hoodie/account');
 
-//var task = require('./hoodie/task');
-//var config = require('./hoodie/config');
-//var account = require('./hoodie/account');
-//var remote = require('./hoodie/remote_store');
-//var account = require('./hoodie/account');
+// Constructor
+// -------------
 
+// When initializing a hoodie instance, an optional URL
+// can be passed. That's the URL of the hoodie backend.
+// If no URL passed it defaults to the current domain.
+//
+//     // init a new hoodie instance
+//     hoodie = new Hoodie
+//
 
-module.exports = function (baseUrl) {
-
-  var self = this;
+module.exports = function Hoodie(baseUrl) {
+  var hoodie = this;
 
   // enforce initialization with `new`
-  if (!(this instanceof Hoodie)) {
+  if (!(hoodie instanceof Hoodie)) {
     throw new Error('usage: new Hoodie(url);');
   }
 
@@ -790,19 +52,22 @@ module.exports = function (baseUrl) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
   }
 
-  var events = require('./hoodie/events')(self);
-  var promises = require('./hoodie/promises');
-  var request = require('./hoodie/request');
-  var connection = require('./hoodie/connection');
-  var UUID = require('./hoodie/uuid');
-  var dispose = require('./hoodie/dispose');
-  //var open = require('./hoodie/open')();
-  var store = require('./hoodie/store')(self);
+
+  // hoodie.extend
+  // ---------------
+
+  // extend hoodie instance:
+  //
+  //     hoodie.extend(function(hoodie) {} )
+  //
+  this.extend = function extend(extension) {
+    extension(hoodie);
+  };
+
 
   //
   // Extending hoodie core
   //
-
 
   // * hoodie.bind
   // * hoodie.on
@@ -810,12 +75,12 @@ module.exports = function (baseUrl) {
   // * hoodie.trigger
   // * hoodie.unbind
   // * hoodie.off
-  self.bind = events.bind;
-  self.on = events.on;
-  self.one = events.one;
-  self.trigger = events.trigger;
-  self.unbind = events.unbind;
-  self.off = events.off;
+  this.bind = events.bind;
+  this.on = events.on;
+  this.one = events.one;
+  this.trigger = events.trigger;
+  this.unbind = events.unbind;
+  this.off = events.off;
 
 
   // * hoodie.defer
@@ -824,202 +89,120 @@ module.exports = function (baseUrl) {
   // * hoodie.reject
   // * hoodie.resolveWith
   // * hoodie.rejectWith
-  self.defer = promises.defer;
-  self.isPromise = promises.isPromise;
-  self.resolve = promises.resolve;
-  self.reject = promises.reject;
-  self.resolveWith = promises.resolveWith;
+  this.defer = promises.defer;
+  this.isPromise = promises.isPromise;
+  this.resolve = promises.resolve;
+  this.reject = promises.reject;
+  this.resolveWith = promises.resolveWith;
 
 
   // * hoodie.request
-  self.request = request;
-
+  this.request = request;
 
   // * hoodie.isOnline
   // * hoodie.checkConnection
-  self.isOnline = connection.isOnline;
-  self.checkConnection = connection.checkConnection;
-
+  this.isOnline = connection.isOnline;
+  this.checkConnection = connection.checkConnection;
 
   // * hoodie.uuid
-  self.UUID = UUID;
-
+  this.UUID = UUID;
 
   // * hoodie.dispose
-  self.dispose = dispose;
-
+  this.dispose = dispose;
 
   // * hoodie.open
-  //self.open = open;
-
+  this.open = open;
 
   // * hoodie.store
-  //self.store = store;
+  this.store = store;
+
+  // * hoodie.task
+  this.task = task;
+
+  // * hoodie.config
+  this.config = config;
+
+  // * hoodie.account
+  this.account = account;
+
+  // * hoodie.remote
+  this.remote = remote;
+
+
+  //
+  // Initializations
+  //
+
+  // set username from config (local store)
+  this.account.username = config.get('_account.username');
+
+  // check for pending password reset
+  this.account.checkPasswordReset();
+
+  // clear config on sign out
+  events.on('account:signout', config.clear);
+
+  // hoodie.store
+  this.store.patchIfNotPersistant();
+  this.store.subscribeToOutsideEvents();
+  this.store.bootstrapDirtyObjects();
+
+  // hoodie.remote
+  this.remote.subscribeToEvents();
+
+  // hoodie.task
+  this.task.subscribeToStoreEvents();
+
+  // authenticate
+  // we use a closure to not pass the username to connect, as it
+  // would set the name of the remote store, which is not the username.
+  this.account.authenticate().then(function( /* username */ ) {
+    remote.connect();
+  });
+
+  // check connection when browser goes online / offline
+  window.addEventListener('online', this.checkConnection, false);
+  window.addEventListener('offline', this.checkConnection, false);
+
+  // start checking connection
+  this.checkConnection();
+
+  //
+  // loading user extensions
+  //
+  applyExtensions(hoodie);
 };
 
-
-},{"./hoodie/connection":4,"./hoodie/dispose":5,"./hoodie/events":7,"./hoodie/promises":8,"./hoodie/request":9,"./hoodie/store":11,"./hoodie/uuid":12}],4:[function(require,module,exports){
-/* exported hoodieConnection */
-
-//
-// hoodie.checkConnection() & hoodie.isConnected()
-// =================================================
-
-var promises = require('./promises');
-var events = require('./events');
-var request = require('./request');
-
-// state
-var online = true;
-var checkConnectionInterval = 30000;
-var checkConnectionRequest = null;
-var checkConnectionTimeout = null;
-
-// Check Connection
+// Extending hoodie
 // ------------------
 
-// the `checkConnection` method is used, well, to check if
-// the hoodie backend is reachable at `baseUrl` or not.
-// Check Connection is automatically called on startup
-// and then each 30 seconds. If it fails, it
+// You can either extend the Hoodie class, or a hoodie
+// instance during runtime
 //
-// - sets `online = false`
-// - triggers `offline` event
-// - sets `checkConnectionInterval = 3000`
+//     Hoodie.extend('magic1', funcion(hoodie) { /* ... */ })
+//     hoodie = new Hoodie
+//     hoodie.extend('magic2', function(hoodie) { /* ... */ })
+//     hoodie.magic1.doSomething()
+//     hoodie.magic2.doSomethingElse()
 //
-// when connection can be reestablished, it
+// Hoodie can also be extended anonymously
 //
-// - sets `online = true`
-// - triggers `online` event
-// - sets `checkConnectionInterval = 30000`
+//     Hoodie.extend(funcion(hoodie) { hoodie.myMagic = function() {} })
 //
-var checkConnection = function () {
-  var req = checkConnectionRequest;
+var extensions = [];
 
-  if (req && req.state() === 'pending') {
-    return req;
-  }
-
-  window.clearTimeout(checkConnectionTimeout);
-
-  checkConnectionRequest = request('GET', '/').then(
-    handleCheckConnectionSuccess,
-    handleCheckConnectionError
-  );
-
-  return checkConnectionRequest;
+Hoodie.extend = function(extension) {
+  extensions.push(extension);
 };
 
-
-// isConnected
-// -------------
-
 //
-var isConnected = function () {
-  return online;
-};
-
-
-//
-//
-//
-function handleCheckConnectionSuccess() {
-  checkConnectionInterval = 30000;
-
-  checkConnectionTimeout = window.setTimeout(
-    exports.checkConnection,
-    checkConnectionInterval
-  );
-
-  if (!exports.isConnected()) {
-    events.trigger('reconnected');
-    online = true;
+function applyExtensions(hoodie) {
+  for (var i = 0; i < extensions.length; i++) {
+    extensions[i](hoodie);
   }
-
-  return promises.resolve();
 }
 
 
-//
-//
-//
-function handleCheckConnectionError() {
-  checkConnectionInterval = 3000;
-
-  checkConnectionTimeout = window.setTimeout(
-    exports.checkConnection,
-    checkConnectionInterval
-  );
-
-  if (exports.isConnected()) {
-    events.trigger('disconnected');
-    online = false;
-  }
-
-  return promises.reject();
-}
-
-module.exports = {
-  checkConnection: checkConnection,
-  isConnected: isConnected
-};
-
-
-},{"./events":7,"./promises":8,"./request":9}],5:[function(require,module,exports){
-/* exported hoodieDispose */
-
-// hoodie.dispose
-// ================
-var events = require('./events');
-
-module.exports = function () {
-
-  // if a hoodie instance is not needed anymore, it can
-  // be disposed using this method. A `dispose` event
-  // gets triggered that the modules react on.
-  events.trigger('dispose');
-  events.unbind();
-
-  return;
-};
-
-},{"./events":7}],6:[function(require,module,exports){
-//
-// one place to rule them all!
-//
-
-module.exports = {
-
-  // INVALID_KEY
-  // --------------
-
-  // thrown when invalid keys are used to store an object
-  //
-  INVALID_KEY: function (idOrType) {
-    var key = idOrType.id ? 'id' : 'type';
-
-    return new Error('invalid ' + key + '\'' + idOrType[key] + '\': numbers and lowercase letters allowed only');
-  },
-
-  // INVALID_ARGUMENTS
-  // -------------------
-
-  //
-  INVALID_ARGUMENTS: function (msg) {
-    return new Error(msg);
-  },
-
-  // NOT_FOUND
-  // -----------
-
-  //
-  NOT_FOUND: function (type, id) {
-    return new Error('' + type + ' with ' + id + ' could not be found');
-  }
-
-};
-
-},{}],7:[function(require,module,exports){
 /* exported hoodieEvents */
 
 //
@@ -1187,7 +370,6 @@ module.exports = function (hoodie, options) {
 };
 
 
-},{}],8:[function(require,module,exports){
 // Hoodie Defers / Promises
 // ------------------------
 
@@ -1249,7 +431,6 @@ module.exports = {
   rejectWith: rejectWith
 };
 
-},{}],9:[function(require,module,exports){
 /* exported hoodieRequest */
 
 //
@@ -1340,121 +521,196 @@ module.exports = (function () {
   return request;
 }());
 
-},{"./promises":8}],10:[function(require,module,exports){
+/* exported hoodieConnection */
 
-// scoped Store
-// ============
-
-// same as store, but with type preset to an initially
-// passed value.
 //
-var store = require('./store');
+// hoodie.checkConnection() & hoodie.isConnected()
+// =================================================
+
+var promises = require('./promises');
 var events = require('./events');
+var request = require('./request');
 
-module.exports = function (hoodie, options) {
+// state
+var online = true;
+var checkConnectionInterval = 30000;
+var checkConnectionRequest = null;
+var checkConnectionTimeout = null;
 
-  // name
-  var storeName = options.name || 'store';
-  var type = options.type;
-  var id = options.id;
+// Check Connection
+// ------------------
 
-  var api = {};
+// the `checkConnection` method is used, well, to check if
+// the hoodie backend is reachable at `baseUrl` or not.
+// Check Connection is automatically called on startup
+// and then each 30 seconds. If it fails, it
+//
+// - sets `online = false`
+// - triggers `offline` event
+// - sets `checkConnectionInterval = 3000`
+//
+// when connection can be reestablished, it
+//
+// - sets `online = true`
+// - triggers `online` event
+// - sets `checkConnectionInterval = 30000`
+//
+var checkConnection = function () {
+  var req = checkConnectionRequest;
 
-  // scoped by type only
-  if (!id) {
-
-    // add events
-    events({
-      context: api,
-      namespace: storeName + ':' + type
-    });
-
-    //
-    api.save = function save(id, properties, options) {
-      return store.save(type, id, properties, options);
-    };
-
-    //
-    api.add = function add(properties, options) {
-      return store.add(type, properties, options);
-    };
-
-    //
-    api.find = function find(id) {
-      return store.find(type, id);
-    };
-
-    //
-    api.findOrAdd = function findOrAdd(id, properties) {
-      return store.findOrAdd(type, id, properties);
-    };
-
-    //
-    api.findAll = function findAll(options) {
-      return store.findAll(type, options);
-    };
-
-    //
-    api.update = function update(id, objectUpdate, options) {
-      return store.update(type, id, objectUpdate, options);
-    };
-
-    //
-    api.updateAll = function updateAll(objectUpdate, options) {
-      return store.updateAll(type, objectUpdate, options);
-    };
-
-    //
-    api.remove = function remove(id, options) {
-      return store.remove(type, id, options);
-    };
-
-    //
-    api.removeAll = function removeAll(options) {
-      return store.removeAll(type, options);
-    };
-
+  if (req && req.state() === 'pending') {
+    return req;
   }
 
-  // scoped by both: type & id
-  if (id) {
+  window.clearTimeout(checkConnectionTimeout);
 
-    // add events
-    events({
-      context: api,
-      namespace: storeName + ':' + type + ':' + id
-    });
+  checkConnectionRequest = request('GET', '/').then(
+    handleCheckConnectionSuccess,
+    handleCheckConnectionError
+  );
 
-    //
-    api.save = function save(properties, options) {
-      return store.save(type, id, properties, options);
-    };
+  return checkConnectionRequest;
+};
 
-    //
-    api.find = function find() {
-      return store.find(type, id);
-    };
 
-    //
-    api.update = function update(objectUpdate, options) {
-      return store.update(type, id, objectUpdate, options);
-    };
+// isConnected
+// -------------
 
-    //
-    api.remove = function remove(options) {
-      return store.remove(type, id, options);
-    };
+//
+var isConnected = function () {
+  return online;
+};
+
+
+//
+//
+//
+function handleCheckConnectionSuccess() {
+  checkConnectionInterval = 30000;
+
+  checkConnectionTimeout = window.setTimeout(
+    exports.checkConnection,
+    checkConnectionInterval
+  );
+
+  if (!exports.isConnected()) {
+    events.trigger('reconnected');
+    online = true;
   }
 
-  //
-  api.decoratePromises = store.decoratePromises;
-  api.validate = store.validate;
+  return promises.resolve();
+}
 
-  return api;
+
+//
+//
+//
+function handleCheckConnectionError() {
+  checkConnectionInterval = 3000;
+
+  checkConnectionTimeout = window.setTimeout(
+    exports.checkConnection,
+    checkConnectionInterval
+  );
+
+  if (exports.isConnected()) {
+    events.trigger('disconnected');
+    online = false;
+  }
+
+  return promises.reject();
+}
+
+module.exports = {
+  checkConnection: checkConnection,
+  isConnected: isConnected
+};
+
+
+/* exported hoodieUUID */
+
+// hoodie.uuid
+// =============
+
+// uuids consist of numbers and lowercase letters only.
+// We stick to lowercase letters to prevent confusion
+// and to prevent issues with CouchDB, e.g. database
+// names do wonly allow for lowercase letters.
+
+module.exports = function (length) {
+  var chars = '0123456789abcdefghijklmnopqrstuvwxyz'.split('');
+  var radix = chars.length;
+  var i;
+  var id = '';
+
+  // default uuid length to 7
+  if (length === undefined) {
+    length = 7;
+  }
+
+  for (i = 0; i < length; i++) {
+    var rand = Math.random() * radix;
+    var char = chars[Math.floor(rand)];
+    id += String(char).charAt(0);
+  }
+
+  return id;
 
 };
 
-},{"./events":7,"./store":11}],11:[function(require,module,exports){
+/* exported hoodieDispose */
+
+// hoodie.dispose
+// ================
+var events = require('./events');
+
+module.exports = function () {
+
+  // if a hoodie instance is not needed anymore, it can
+  // be disposed using this method. A `dispose` event
+  // gets triggered that the modules react on.
+  events.trigger('dispose');
+  events.unbind();
+
+  return;
+};
+
+/* global $:true */
+
+// Open stores
+// -------------
+
+var remoteStoreApi = require('./remote_store');
+
+module.exports = function () {
+  var $extend = $.extend;
+
+  // generic method to open a store. Used by
+  //
+  // * hoodie.remote
+  // * hoodie.user("joe")
+  // * hoodie.global
+  // * ... and more
+  //
+  //     hoodie.open("some_store_name").findAll()
+  //
+  function open(storeName, options) {
+    options = options || {};
+
+    $extend(options, {
+      name: storeName
+    });
+
+    return remoteStoreApi(options);
+  }
+
+  //
+  // Public API
+  //
+  return open;
+};
+
+
 // Store
 // ============
 
@@ -1493,6 +749,10 @@ var utils = require('util');
 
 module.exports = function (hoodie, options) {
 
+  var self = this;
+
+  this.options = options || {};
+
   // persistance logic
   var backend = {};
 
@@ -1503,14 +763,20 @@ module.exports = function (hoodie, options) {
     hoodie: hoodie
   };
 
-  var storeName = options.name || 'store';
+  var storeName;
+
+  if (!this.options.name) {
+    storeName = 'store';
+  } else {
+    storeName = this.options.name;
+  }
 
   // public API
   var api = function api(type, id) {
     var scopedOptions = $.extend(true, {
       type: type,
       id: id
-    }, options);
+    }, self.options);
 
     return scopedStore(hoodie, api, scopedOptions);
   };
@@ -1874,39 +1140,3473 @@ module.exports = function (hoodie, options) {
 };
 
 
-},{"./errors":6,"./events":7,"./scoped_store":10,"util":2}],12:[function(require,module,exports){
-/* exported hoodieUUID */
 
-// hoodie.uuid
-// =============
+// scoped Store
+// ============
 
-// uuids consist of numbers and lowercase letters only.
-// We stick to lowercase letters to prevent confusion
-// and to prevent issues with CouchDB, e.g. database
-// names do wonly allow for lowercase letters.
+// same as store, but with type preset to an initially
+// passed value.
+//
+var store = require('./store');
+var events = require('./events');
 
-module.exports = function (length) {
-  var chars = '0123456789abcdefghijklmnopqrstuvwxyz'.split('');
-  var radix = chars.length;
-  var i;
-  var id = '';
+module.exports = function (hoodie, options) {
 
-  // default uuid length to 7
-  if (length === undefined) {
-    length = 7;
+  // name
+  var storeName = options.name || 'store';
+  var type = options.type;
+  var id = options.id;
+
+  var api = {};
+
+  // scoped by type only
+  if (!id) {
+
+    // add events
+    events({
+      context: api,
+      namespace: storeName + ':' + type
+    });
+
+    //
+    api.save = function save(id, properties, options) {
+      return store.save(type, id, properties, options);
+    };
+
+    //
+    api.add = function add(properties, options) {
+      return store.add(type, properties, options);
+    };
+
+    //
+    api.find = function find(id) {
+      return store.find(type, id);
+    };
+
+    //
+    api.findOrAdd = function findOrAdd(id, properties) {
+      return store.findOrAdd(type, id, properties);
+    };
+
+    //
+    api.findAll = function findAll(options) {
+      return store.findAll(type, options);
+    };
+
+    //
+    api.update = function update(id, objectUpdate, options) {
+      return store.update(type, id, objectUpdate, options);
+    };
+
+    //
+    api.updateAll = function updateAll(objectUpdate, options) {
+      return store.updateAll(type, objectUpdate, options);
+    };
+
+    //
+    api.remove = function remove(id, options) {
+      return store.remove(type, id, options);
+    };
+
+    //
+    api.removeAll = function removeAll(options) {
+      return store.removeAll(type, options);
+    };
+
   }
 
-  for (i = 0; i < length; i++) {
-    var rand = Math.random() * radix;
-    var char = chars[Math.floor(rand)];
-    id += String(char).charAt(0);
+  // scoped by both: type & id
+  if (id) {
+
+    // add events
+    events({
+      context: api,
+      namespace: storeName + ':' + type + ':' + id
+    });
+
+    //
+    api.save = function save(properties, options) {
+      return store.save(type, id, properties, options);
+    };
+
+    //
+    api.find = function find() {
+      return store.find(type, id);
+    };
+
+    //
+    api.update = function update(objectUpdate, options) {
+      return store.update(type, id, objectUpdate, options);
+    };
+
+    //
+    api.remove = function remove(options) {
+      return store.remove(type, id, options);
+    };
   }
 
-  return id;
+  //
+  api.decoratePromises = store.decoratePromises;
+  api.validate = store.validate;
+
+  return api;
 
 };
 
-},{}]},{},[3])
-(3)
-});
-;
+//
+// one place to rule them all!
+//
+
+module.exports = {
+
+  // INVALID_KEY
+  // --------------
+
+  // thrown when invalid keys are used to store an object
+  //
+  INVALID_KEY: function (idOrType) {
+    var key = idOrType.id ? 'id' : 'type';
+
+    return new Error('invalid ' + key + '\'' + idOrType[key] + '\': numbers and lowercase letters allowed only');
+  },
+
+  // INVALID_ARGUMENTS
+  // -------------------
+
+  //
+  INVALID_ARGUMENTS: function (msg) {
+    return new Error(msg);
+  },
+
+  // NOT_FOUND
+  // -----------
+
+  //
+  NOT_FOUND: function (type, id) {
+    return new Error('' + type + ' with ' + id + ' could not be found');
+  }
+
+};
+
+// Remote
+// ========
+
+// Connection to a remote Couch Database.
+//
+// store API
+// ----------------
+//
+// object loading / updating / deleting
+//
+// * find(type, id)
+// * findAll(type )
+// * add(type, object)
+// * save(type, id, object)
+// * update(type, id, new_properties )
+// * updateAll( type, new_properties)
+// * remove(type, id)
+// * removeAll(type)
+//
+// custom requests
+//
+// * request(view, params)
+// * get(view, params)
+// * post(view, params)
+//
+// synchronization
+//
+// * connect()
+// * disconnect()
+// * pull()
+// * push()
+// * sync()
+//
+// event binding
+//
+// * on(event, callback)
+//
+
+//
+var uuid = require('./uuid');
+var connection = require('./connection');
+var promises = require('./promises');
+var request = require('./request');
+var storeApi = require('./store');
+
+module.exports = function (options) {
+
+  var remoteStore = {};
+
+
+  // Remote Store Persistance methods
+  // ----------------------------------
+
+  // find
+  // ------
+
+  // find one object
+  //
+  remoteStore.find = function find(type, id) {
+    var path;
+
+    path = type + '/' + id;
+
+    if (remote.prefix) {
+      path = remote.prefix + path;
+    }
+
+    path = '/' + encodeURIComponent(path);
+
+    return request('GET', path).then(parseFromRemote);
+  };
+
+
+  // findAll
+  // ---------
+
+  // find all objects, can be filetered by a type
+  //
+  remoteStore.findAll = function findAll(type) {
+    var endkey, path, startkey;
+
+    path = '/_all_docs?include_docs=true';
+
+    switch (true) {
+    case (type !== undefined) && remote.prefix !== '':
+      startkey = remote.prefix + type + '/';
+      break;
+    case type !== undefined:
+      startkey = type + '/';
+      break;
+    case remote.prefix !== '':
+      startkey = remote.prefix;
+      break;
+    default:
+      startkey = '';
+    }
+
+    if (startkey) {
+
+      // make sure that only objects starting with
+      // `startkey` will be returned
+      endkey = startkey.replace(/.$/, function(chars) {
+        var charCode;
+        charCode = chars.charCodeAt(0);
+        return String.fromCharCode(charCode + 1);
+      });
+      path = '' + path + '&startkey="' + (encodeURIComponent(startkey)) + '"&endkey="' + (encodeURIComponent(endkey)) + '"';
+    }
+
+    return request('GET', path).then(mapDocsFromFindAll).then(parseAllFromRemote);
+  };
+
+
+  // save
+  // ------
+
+  // save a new object. If it existed before, all properties
+  // will be overwritten
+  //
+  remoteStore.save = function save(object) {
+    var path;
+
+    if (!object.id) {
+      object.id = uuid();
+    }
+
+    object = parseForRemote(object);
+    path = '/' + encodeURIComponent(object._id);
+    return request('PUT', path, {
+      data: object
+    });
+  };
+
+
+  // remove
+  // ---------
+
+  // remove one object
+  //
+  remoteStore.remove = function remove(type, id) {
+    return remote.update(type, id, {
+      _deleted: true
+    });
+  };
+
+
+  // removeAll
+  // ------------
+
+  // remove all objects, can be filtered by type
+  //
+  remoteStore.removeAll = function removeAll(type) {
+    return remote.updateAll(type, {
+      _deleted: true
+    });
+  };
+
+
+  var remote = storeApi({
+
+    name: options.name,
+
+    backend: {
+      save: remoteStore.save,
+      find: remoteStore.find,
+      findAll: remoteStore.findAll,
+      remove: remoteStore.remove,
+      removeAll: remoteStore.removeAll
+    }
+
+  });
+
+  // properties
+  // ------------
+
+  // name
+
+  // the name of the Remote is the name of the
+  // CouchDB database and is also used to prefix
+  // triggered events
+  //
+  var remoteName = null;
+
+
+  // sync
+
+  // if set to true, updates will be continuously pulled
+  // and pushed. Alternatively, `sync` can be set to
+  // `pull: true` or `push: true`.
+  //
+  remote.connected = false;
+
+
+  // prefix
+
+  //prefix for docs in a CouchDB database, e.g. all docs
+  // in public user stores are prefixed by '$public/'
+  //
+  remote.prefix = '';
+
+
+
+  // defaults
+  // ----------------
+
+  //
+  if (options.name !== undefined) {
+    remoteName = options.name;
+  }
+
+  if (options.prefix !== undefined) {
+    remote.prefix = options.prefix;
+  }
+
+  if (options.baseUrl !== null) {
+    remote.baseUrl = options.baseUrl;
+  }
+
+
+  // request
+  // ---------
+
+  // wrapper for hoodie.request, with some store specific defaults
+  // and a prefixed path
+  //
+  request = function request(type, path, options) {
+    options = options || {};
+
+    if (remoteName) {
+      path = '/' + (encodeURIComponent(remoteName)) + path;
+    }
+
+    if (remote.baseUrl) {
+      path = '' + remote.baseUrl + path;
+    }
+
+    options.contentType = options.contentType || 'application/json';
+
+    if (type === 'POST' || type === 'PUT') {
+      options.dataType = options.dataType || 'json';
+      options.processData = options.processData || false;
+      options.data = JSON.stringify(options.data);
+    }
+    return request(type, path, options);
+  };
+
+
+  // isKnownObject
+  // ---------------
+
+  // determine between a known and a new object
+  //
+  remote.isKnownObject = function isKnownObject(object) {
+    var key = '' + object.type + '/' + object.id;
+
+    if (knownObjects[key] !== undefined) {
+      return knownObjects[key];
+    }
+  };
+
+
+  // markAsKnownObject
+  // -------------------
+
+  // determine between a known and a new object
+  //
+  remote.markAsKnownObject = function markAsKnownObject(object) {
+    var key = '' + object.type + '/' + object.id;
+    knownObjects[key] = 1;
+    return knownObjects[key];
+  };
+
+
+  // synchronization
+  // -----------------
+
+  // Connect
+  // ---------
+
+  // start syncing. `remote.bootstrap()` will automatically start
+  // pulling when `remote.connected` remains true.
+  //
+  remote.connect = function connect(name) {
+    if (name) {
+      remoteName = name;
+    }
+    remote.connected = true;
+    remote.trigger('connect'); // TODO: spec that
+    return remote.bootstrap();
+  };
+
+
+  // Disconnect
+  // ------------
+
+  // stop syncing changes from remote store
+  //
+  remote.disconnect = function disconnect() {
+    remote.connected = false;
+    remote.trigger('disconnect'); // TODO: spec that
+
+    if (pullRequest) {
+      pullRequest.abort();
+    }
+
+    if (pushRequest) {
+      pushRequest.abort();
+    }
+
+  };
+
+
+  // isConnected
+  // -------------
+
+  //
+  remote.isConnected = function isConnected() {
+    return remote.connected;
+  };
+
+
+  // getSinceNr
+  // ------------
+
+  // returns the sequence number from wich to start to find changes in pull
+  //
+  var since = options.since || 0; // TODO: spec that!
+  remote.getSinceNr = function getSinceNr() {
+    if (typeof since === 'function') {
+      return since();
+    }
+
+    return since;
+  };
+
+
+  // bootstrap
+  // -----------
+
+  // inital pull of data of the remote store. By default, we pull all
+  // changes since the beginning, but this behavior might be adjusted,
+  // e.g for a filtered bootstrap.
+  //
+  var isBootstrapping = false;
+  remote.bootstrap = function bootstrap() {
+    isBootstrapping = true;
+    remote.trigger('bootstrap:start');
+    return remote.pull().done( handleBootstrapSuccess );
+  };
+
+
+  // pull changes
+  // --------------
+
+  // a.k.a. make a GET request to CouchDB's `_changes` feed.
+  // We currently make long poll requests, that we manually abort
+  // and restart each 25 seconds.
+  //
+  var pullRequest, pullRequestTimeout;
+  remote.pull = function pull() {
+    pullRequest = request('GET', pullUrl());
+
+    if (remote.isConnected()) {
+      window.clearTimeout(pullRequestTimeout);
+      pullRequestTimeout = window.setTimeout(restartPullRequest, 25000);
+    }
+
+    return pullRequest.done(handlePullSuccess).fail(handlePullError);
+  };
+
+
+  // push changes
+  // --------------
+
+  // Push objects to remote store using the `_bulk_docs` API.
+  //
+  var pushRequest;
+  remote.push = function push(objects) {
+    var object, objectsForRemote, _i, _len;
+
+    if (!$.isArray(objects)) {
+      objects = defaultObjectsToPush();
+    }
+
+    if (objects.length === 0) {
+      return promises.resolveWith([]);
+    }
+
+    objectsForRemote = [];
+
+    for (_i = 0, _len = objects.length; _i < _len; _i++) {
+
+      // don't mess with original objects
+      object = $.extend(true, {}, objects[_i]);
+      addRevisionTo(object);
+      object = parseForRemote(object);
+      objectsForRemote.push(object);
+    }
+    pushRequest = request('POST', '/_bulk_docs', {
+      data: {
+        docs: objectsForRemote,
+        new_edits: false
+      }
+    });
+
+    pushRequest.done(function() {
+      for (var i = 0; i < objects.length; i++) {
+        remote.trigger('push', objects[i]);
+      }
+    });
+    return pushRequest;
+  };
+
+  // sync changes
+  // --------------
+
+  // push objects, then pull updates.
+  //
+  remote.sync = function sync(objects) {
+    return remote.push(objects).then(remote.pull);
+  };
+
+  //
+  // Private
+  // ---------
+  //
+
+  // in order to differentiate whether an object from remote should trigger a 'new'
+  // or an 'update' event, we store a hash of known objects
+  var knownObjects = {};
+
+
+  // valid CouchDB doc attributes starting with an underscore
+  //
+  var validSpecialAttributes = ['_id', '_rev', '_deleted', '_revisions', '_attachments'];
+
+
+  // default objects to push
+  // --------------------------
+
+  // when pushed without passing any objects, the objects returned from
+  // this method will be passed. It can be overwritten by passing an
+  // array of objects or a function as `options.objects`
+  //
+  var defaultObjectsToPush = function defaultObjectsToPush() {
+    return [];
+  };
+  if (options.defaultObjectsToPush) {
+    if ($.isArray(options.defaultObjectsToPush)) {
+      defaultObjectsToPush = function defaultObjectsToPush() {
+        return options.defaultObjectsToPush;
+      };
+    } else {
+      defaultObjectsToPush = options.defaultObjectsToPush;
+    }
+  }
+
+
+  // setSinceNr
+  // ------------
+
+  // sets the sequence number from wich to start to find changes in pull.
+  // If remote store was initialized with since : function(nr) { ... },
+  // call the function with the seq passed. Otherwise simply set the seq
+  // number and return it.
+  //
+  function setSinceNr(seq) {
+    if (typeof since === 'function') {
+      return since(seq);
+    }
+
+    since = seq;
+    return since;
+  }
+
+
+  // Parse for remote
+  // ------------------
+
+  // parse object for remote storage. All properties starting with an
+  // `underscore` do not get synchronized despite the special properties
+  // `_id`, `_rev` and `_deleted` (see above)
+  //
+  // Also `id` gets replaced with `_id` which consists of type & id
+  //
+  function parseForRemote(object) {
+    var attr, properties;
+    properties = $.extend({}, object);
+
+    for (attr in properties) {
+      if (properties.hasOwnProperty(attr)) {
+        if (validSpecialAttributes.indexOf(attr) !== -1) {
+          continue;
+        }
+        if (!/^_/.test(attr)) {
+          continue;
+        }
+        delete properties[attr];
+      }
+    }
+
+    // prepare CouchDB id
+    properties._id = '' + properties.type + '/' + properties.id;
+    if (remote.prefix) {
+      properties._id = '' + remote.prefix + properties._id;
+    }
+    delete properties.id;
+    return properties;
+  }
+
+
+  // ### _parseFromRemote
+
+  // normalize objects coming from remote
+  //
+  // renames `_id` attribute to `id` and removes the type from the id,
+  // e.g. `type/123` -> `123`
+  //
+  function parseFromRemote(object) {
+    var id, ignore, _ref;
+
+    // handle id and type
+    id = object._id || object.id;
+    delete object._id;
+
+    if (remote.prefix) {
+      id = id.replace(new RegExp('^' + remote.prefix), '');
+    }
+
+    // turn doc/123 into type = doc & id = 123
+    // NOTE: we don't use a simple id.split(/\//) here,
+    // as in some cases IDs might contain '/', too
+    //
+    _ref = id.match(/([^\/]+)\/(.*)/),
+    ignore = _ref[0],
+    object.type = _ref[1],
+    object.id = _ref[2];
+
+    return object;
+  }
+
+  function parseAllFromRemote(objects) {
+    var object, _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = objects.length; _i < _len; _i++) {
+      object = objects[_i];
+      _results.push(parseFromRemote(object));
+    }
+    return _results;
+  }
+
+
+  // ### _addRevisionTo
+
+  // extends passed object with a _rev property
+  //
+  function addRevisionTo(attributes) {
+    var currentRevId, currentRevNr, newRevisionId, _ref;
+    try {
+      _ref = attributes._rev.split(/-/),
+      currentRevNr = _ref[0],
+      currentRevId = _ref[1];
+    } catch (_error) {}
+    currentRevNr = parseInt(currentRevNr, 10) || 0;
+    newRevisionId = generateNewRevisionId();
+
+    // local changes are not meant to be replicated outside of the
+    // users database, therefore the `-local` suffix.
+    if (attributes._$local) {
+      newRevisionId += '-local';
+    }
+
+    attributes._rev = '' + (currentRevNr + 1) + '-' + newRevisionId;
+    attributes._revisions = {
+      start: 1,
+      ids: [newRevisionId]
+    };
+
+    if (currentRevId) {
+      attributes._revisions.start += currentRevNr;
+      return attributes._revisions.ids.push(currentRevId);
+    }
+  }
+
+
+  // ### generate new revision id
+
+  //
+  function generateNewRevisionId() {
+    return uuid(9);
+  }
+
+
+  // ### map docs from findAll
+
+  //
+  function mapDocsFromFindAll(response) {
+    return response.rows.map(function(row) {
+      return row.doc;
+    });
+  }
+
+
+  // ### pull url
+
+  // Depending on whether remote is connected (= pulling changes continuously)
+  // return a longpoll URL or not. If it is a beginning bootstrap request, do
+  // not return a longpoll URL, as we want it to finish right away, even if there
+  // are no changes on remote.
+  //
+  function pullUrl() {
+    var since;
+    since = remote.getSinceNr();
+    if (remote.isConnected() && !isBootstrapping) {
+      return '/_changes?include_docs=true&since=' + since + '&heartbeat=10000&feed=longpoll';
+    } else {
+      return '/_changes?include_docs=true&since=' + since;
+    }
+  }
+
+
+  // ### restart pull request
+
+  // request gets restarted automaticcally
+  // when aborted (see @_handlePullError)
+  function restartPullRequest() {
+    if (pullRequest) {
+      pullRequest.abort();
+    }
+  }
+
+
+  // ### pull success handler
+
+  // request gets restarted automaticcally
+  // when aborted (see @_handlePullError)
+  //
+  function handlePullSuccess(response) {
+    setSinceNr(response.last_seq);
+    handlePullResults(response.results);
+    if (remote.isConnected()) {
+      return remote.pull();
+    }
+  }
+
+
+  // ### pull error handler
+
+  // when there is a change, trigger event,
+  // then check for another change
+  //
+  function handlePullError(xhr, error) {
+    if (!remote.isConnected()) {
+      return;
+    }
+
+    switch (xhr.status) {
+      // Session is invalid. User is still login, but needs to reauthenticate
+      // before sync can be continued
+    case 401:
+      remote.trigger('error:unauthenticated', error);
+      return remote.disconnect();
+
+     // the 404 comes, when the requested DB has been removed
+     // or does not exist yet.
+     //
+     // BUT: it might also happen that the background workers did
+     //      not create a pending database yet. Therefore,
+     //      we try it again in 3 seconds
+     //
+     // TODO: review / rethink that.
+     //
+
+    case 404:
+      return window.setTimeout(remote.pull, 3000);
+
+    case 500:
+      //
+      // Please server, don't give us these. At least not persistently
+      //
+      remote.trigger('error:server', error);
+      window.setTimeout(remote.pull, 3000);
+      return connection.checkConnection();
+    default:
+      // usually a 0, which stands for timeout or server not reachable.
+      if (xhr.statusText === 'abort') {
+        // manual abort after 25sec. restart pulling changes directly when connected
+        return remote.pull();
+      } else {
+
+        // oops. This might be caused by an unreachable server.
+        // Or the server cancelled it for what ever reason, e.g.
+        // heroku kills the request after ~30s.
+        // we'll try again after a 3s timeout
+        //
+        window.setTimeout(remote.pull, 3000);
+        return connection.checkConnection();
+      }
+    }
+  }
+
+
+  // ### handle changes from remote
+  //
+  function handleBootstrapSuccess() {
+    isBootstrapping = false;
+    remote.trigger('bootstrap:end');
+  }
+
+  // ### handle changes from remote
+  //
+  function handlePullResults(changes) {
+    var doc, event, object, _i, _len;
+
+    for (_i = 0, _len = changes.length; _i < _len; _i++) {
+      doc = changes[_i].doc;
+
+      if (remote.prefix && doc._id.indexOf(remote.prefix) !== 0) {
+        continue;
+      }
+
+      object = parseFromRemote(doc);
+
+      if (object._deleted) {
+        if (!remote.isKnownObject(object)) {
+          continue;
+        }
+        event = 'remove';
+        remote.isKnownObject(object);
+      } else {
+        if (remote.isKnownObject(object)) {
+          event = 'update';
+        } else {
+          event = 'add';
+          remote.markAsKnownObject(object);
+        }
+      }
+
+      remote.trigger(event, object);
+      remote.trigger(event + ':' + object.type, object);
+      remote.trigger(event + ':' + object.type + ':' + object.id, object);
+      remote.trigger('change', event, object);
+      remote.trigger('change:' + object.type, event, object);
+      remote.trigger('change:' + object.type + ':' + object.id, event, object);
+    }
+  }
+
+
+  // bootstrap known objects
+  //
+  if (options.knownObjects) {
+    for (var i = 0; i < options.knownObjects.length; i++) {
+      remote.markAsKnownObject({
+        type: options.knownObjects[i].type,
+        id: options.knownObjects[i].id
+      });
+    }
+  }
+
+
+  // expose public API
+  return remote;
+};
+
+// LocalStore
+// ============
+//
+// window.localStrage wrapper and more
+//
+
+var uuid = require('./uuid');
+var account = require('./account');
+var promises = require('./promises');
+var events = require('./events');
+var errors = require('./errors');
+var storeApi = require('./store');
+
+module.exports = function () {
+
+  var localStore = {};
+
+  //
+  // state
+  // -------
+  //
+
+  // cache of localStorage for quicker access
+  var cachedObject = {};
+
+  // map of dirty objects by their ids
+  var dirty = {};
+
+  // queue of method calls done during bootstrapping
+  var queue = [];
+
+  // 2 seconds timout before triggering the `store:idle` event
+  //
+  var idleTimeout = 2000;
+
+
+
+
+  // ------
+  //
+  // saves the passed object into the store and replaces
+  // an eventually existing object with same type & id.
+  //
+  // When id is undefined, it gets generated an new object gets saved
+  //
+  // It also adds timestamps along the way:
+  //
+  // * `createdAt` unless it already exists
+  // * `updatedAt` every time
+  // * `_syncedAt`  if changes comes from remote
+  //
+  // example usage:
+  //
+  //     store.save('car', undefined, {color: 'red'})
+  //     store.save('car', 'abc4567', {color: 'red'})
+  //
+  localStore.save = function save(object, options) {
+    var currentObject, defer, error, event, isNew, key;
+
+    options = options || {};
+
+    // if store is currently bootstrapping data from remote,
+    // we're queueing until it's finished
+    if (store.isBootstrapping()) {
+      return enqueue('save', arguments);
+    }
+
+    // generate an id if necessary
+    if (object.id) {
+      currentObject = cache(object.type, object.id);
+      isNew = typeof currentObject !== 'object';
+    } else {
+      isNew = true;
+      object.id = uuid();
+    }
+
+    if (isNew) {
+      // add createdBy hash
+      object.createdBy = object.createdBy || account.ownerHash;
+    } else {
+      // leave createdBy hash
+      if (currentObject.createdBy) {
+        object.createdBy = currentObject.createdBy;
+      }
+    }
+
+    // handle local properties and hidden properties with $ prefix
+    // keep local properties for remote updates
+    if (!isNew) {
+
+      // for remote updates, keep local properties (starting with '_')
+      // for local updates, keep hidden properties (starting with '$')
+      for (key in currentObject) {
+        if (!object.hasOwnProperty(key)) {
+          switch (key.charAt(0)) {
+          case '_':
+            if (options.remote) {
+              object[key] = currentObject[key];
+            }
+            break;
+          case '$':
+            if (!options.remote) {
+              object[key] = currentObject[key];
+            }
+          }
+        }
+      }
+    }
+
+    // add timestamps
+    if (options.remote) {
+      object._syncedAt = now();
+    } else if (!options.silent) {
+      object.updatedAt = now();
+      object.createdAt = object.createdAt || object.updatedAt;
+    }
+
+    // handle local changes
+    //
+    // A local change is meant to be replicated to the
+    // users database, but not beyond. For example when
+    // I subscribed to a share but then decide to unsubscribe,
+    // all objects get removed with local: true flag, so that
+    // they get removed from my database, but won't anywhere else.
+    if (options.local) {
+      object._$local = true;
+    } else {
+      delete object._$local;
+    }
+
+    defer = promises.defer();
+
+    try {
+      object = cache(object.type, object.id, object, options);
+      defer.resolve(object, isNew).promise();
+      event = isNew ? 'add' : 'update';
+      triggerEvents(event, object, options);
+    } catch (_error) {
+      error = _error;
+      defer.reject(error.toString());
+    }
+
+    return defer.promise();
+  };
+
+
+  // find
+  // ------
+
+  // loads one object from Store, specified by `type` and `id`
+  //
+  // example usage:
+  //
+  //     store.find('car', 'abc4567')
+  localStore.find = function(type, id) {
+    var defer, error, object;
+
+    defer = promises.defer();
+
+    // if store is currently bootstrapping data from remote,
+    // we're queueing until it's finished
+    if (store.isBootstrapping()) {
+      return enqueue('find', arguments);
+    }
+
+    try {
+      object = cache(type, id);
+      if (!object) {
+        defer.reject(errors.NOT_FOUND(type, id)).promise();
+      }
+      defer.resolve(object);
+    } catch (_error) {
+      error = _error;
+      defer.reject(error);
+    }
+
+    return defer.promise();
+  };
+
+
+  // findAll
+  // ---------
+
+  // returns all objects from store.
+  // Can be optionally filtered by a type or a function
+  //
+  // example usage:
+  //
+  //     store.findAll()
+  //     store.findAll('car')
+  //     store.findAll(function(obj) { return obj.brand == 'Tesla' })
+  //
+  localStore.findAll = function findAll(filter) {
+    var currentType, defer, error, id, key, keys, obj, results, type;
+
+
+
+    if (filter == null) {
+      filter = function() {
+        return true;
+      };
+    }
+
+    // if store is currently bootstrapping data from remote,
+    // we're queueing until it's finished
+    if (store.isBootstrapping()) {
+      return enqueue('findAll', arguments);
+    }
+
+    keys = store.index();
+
+    // normalize filter
+    if (typeof filter === 'string') {
+      type = filter;
+      filter = function(obj) {
+        return obj.type === type;
+      };
+    }
+
+    defer = promises.defer();
+
+    try {
+
+      //
+      results = (function() {
+        var _i, _len, _ref, _results;
+        _results = [];
+        for (_i = 0, _len = keys.length; _i < _len; _i++) {
+          key = keys[_i];
+          if (!(isSemanticId(key))) {
+            continue;
+          }
+          _ref = key.split('/'),
+          currentType = _ref[0],
+          id = _ref[1];
+
+          obj = cache(currentType, id);
+          if (obj && filter(obj)) {
+            _results.push(obj);
+          } else {
+            continue;
+          }
+        }
+        return _results;
+      }).call(this);
+
+      // sort from newest to oldest
+      results.sort(function(a, b) {
+        if (a.createdAt > b.createdAt) {
+          return -1;
+        } else if (a.createdAt < b.createdAt) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+      defer.resolve(results).promise();
+    } catch (_error) {
+      error = _error;
+      defer.reject(error).promise();
+    }
+    return defer.promise();
+  };
+
+
+  // Remove
+  // --------
+
+  // Removes one object specified by `type` and `id`.
+  //
+  // when object has been synced before, mark it as deleted.
+  // Otherwise remove it from Store.
+  localStore.remove = function remove(type, id, options) {
+    var key, object, objectWasMarkedAsDeleted;
+
+    options = options || {};
+
+    // if store is currently bootstrapping data from remote,
+    // we're queueing until it's finished
+    if (store.isBootstrapping()) {
+      return enqueue('remove', arguments);
+    }
+
+    key = type + '/' + id;
+
+    object = cache(type, id);
+
+    // if change comes from remote, just clean up locally
+    if (options.remote) {
+      db.removeItem(key);
+      objectWasMarkedAsDeleted = cachedObject[key] && isMarkedAsDeleted(cachedObject[key]);
+      cachedObject[key] = false;
+      clearChanged(type, id);
+      if (objectWasMarkedAsDeleted && object) {
+        return promises.resolveWith(object);
+      }
+    }
+
+    if (!object) {
+      return promises.rejectWith(errors.NOT_FOUND(type, id));
+    }
+
+    if (object._syncedAt) {
+      object._deleted = true;
+      cache(type, id, object);
+    } else {
+      key = type + '/' + id;
+      db.removeItem(key);
+      cachedObject[key] = false;
+      clearChanged(type, id);
+    }
+
+    triggerEvents('remove', object, options);
+    return promises.resolveWith(object);
+  };
+
+
+  // Remove all
+  // ----------
+
+  // Removes one object specified by `type` and `id`.
+  //
+  // when object has been synced before, mark it as deleted.
+  // Otherwise remove it from Store.
+  localStore.removeAll = function removeAll(type, options) {
+    return store.findAll(type).then(function(objects) {
+      var object, _i, _len, results;
+
+      results = [];
+
+      for (_i = 0, _len = objects.length; _i < _len; _i++) {
+        object = objects[_i];
+        results.push(store.remove(object.type, object.id, options));
+      }
+      return results;
+    });
+  };
+
+
+  // validate
+  // ----------
+
+  //
+  function validate (object) {
+
+    if (!isValidType(object.type)) {
+      return errors.INVALID_KEY({
+        type: object.type
+      });
+    }
+
+    if (arguments.length > 0 && !isValidId(object.id)) {
+      return errors.INVALID_KEY({
+        id: object.id
+      });
+    }
+  }
+
+  var store = storeApi({
+
+    // validate
+    validate: validate,
+
+    backend: {
+      save: localStore.save,
+      find: localStore.find,
+      findAll: localStore.findAll,
+      remove: localStore.remove,
+      removeAll: localStore.removeAll,
+    }
+  });
+
+
+
+  // extended public API
+  // ---------------------
+
+
+  // index
+  // -------
+
+  // object key index
+  // TODO: make this cachy
+  store.index = function index() {
+    var i, key, keys, _i, _ref;
+    keys = [];
+    for (i = _i = 0, _ref = db.length(); 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+      key = db.key(i);
+      if (isSemanticId(key)) {
+        keys.push(key);
+      }
+    }
+    return keys;
+  };
+
+
+  // changed objects
+  // -----------------
+
+  // returns an Array of all dirty documents
+  store.changedObjects = function changedObjects() {
+    var id, key, object, type, _ref, _ref1, _results;
+
+    _ref = dirty;
+    _results = [];
+
+    for (key in _ref) {
+      if (_ref.hasOwnProperty(key)) {
+        object = _ref[key];
+        _ref1 = key.split('/'),
+        type = _ref1[0],
+        id = _ref1[1];
+        object.type = type;
+        object.id = id;
+        _results.push(object);
+      }
+    }
+    return _results;
+  };
+
+
+  // Is dirty?
+  // ----------
+
+  // When no arguments passed, returns `true` or `false` depending on if there are
+  // dirty objects in the store.
+  //
+  // Otherwise it returns `true` or `false` for the passed object. An object is dirty
+  // if it has no `_syncedAt` attribute or if `updatedAt` is more recent than `_syncedAt`
+  store.hasLocalChanges = function(type, id) {
+    if (!type) {
+      return !$.isEmptyObject(dirty);
+    }
+    var key = [type,id].join('/');
+    if (dirty[key]) {
+      return true;
+    }
+    return hasLocalChanges(cache(type, id));
+  };
+
+
+  // Clear
+  // ------
+
+  // clears localStorage and cache
+  // TODO: do not clear entire localStorage, clear only the items that have been stored
+  //       using `hoodie.store` before.
+  store.clear = function clear() {
+    var defer, key, keys, results;
+    defer = promises.defer();
+
+    try {
+      keys = store.index();
+      results = (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = keys.length; _i < _len; _i++) {
+          key = keys[_i];
+          if (isSemanticId(key)) {
+            _results.push(db.removeItem(key));
+          }
+        }
+        return _results;
+      }).call(this);
+      cachedObject = {};
+      clearChanged();
+      defer.resolve();
+      store.trigger('clear');
+    } catch (_error) {
+      defer.reject(_error);
+    }
+    return defer.promise();
+  };
+
+
+  // isBootstrapping
+  // -----------------
+
+  // returns true if store is currently bootstrapping data from remote,
+  // otherwise false.
+  var bootstrapping = false;
+  store.isBootstrapping = function isBootstrapping() {
+    return bootstrapping;
+  };
+
+
+  // Is persistant?
+  // ----------------
+
+  // returns `true` or `false` depending on whether localStorage is supported or not.
+  // Beware that some browsers like Safari do not support localStorage in private mode.
+  //
+  // inspired by this cappuccino commit
+  // https://github.com/cappuccino/cappuccino/commit/063b05d9643c35b303568a28809e4eb3224f71ec
+  //
+  store.isPersistent = function isPersistent() {
+    try {
+
+      // we've to put this in here. I've seen Firefox throwing `Security error: 1000`
+      // when cookies have been disabled
+      if (!window.localStorage) {
+        return false;
+      }
+
+      // Just because localStorage exists does not mean it works. In particular it might be disabled
+      // as it is when Safari's private browsing mode is active.
+      localStorage.setItem('Storage-Test', '1');
+
+      // that should not happen ...
+      if (localStorage.getItem('Storage-Test') !== '1') {
+        return false;
+      }
+
+      // okay, let's clean up if we got here.
+      localStorage.removeItem('Storage-Test');
+    } catch (_error) {
+
+      // in case of an error, like Safari's Private Pussy, return false
+      return false;
+    }
+
+    // we're good.
+    return true;
+  };
+
+
+
+
+  //
+  // Private methods
+  // -----------------
+  //
+
+
+  // localStorage proxy
+  //
+  var db = {
+    getItem: function(key) {
+      return window.localStorage.getItem(key);
+    },
+    setItem: function(key, value) {
+      return window.localStorage.setItem(key, value);
+    },
+    removeItem: function(key) {
+      return window.localStorage.removeItem(key);
+    },
+    key: function(nr) {
+      return window.localStorage.key(nr);
+    },
+    length: function() {
+      return window.localStorage.length;
+    }
+  };
+
+
+  // Cache
+  // -------
+
+  // loads an object specified by `type` and `id` only once from localStorage
+  // and caches it for faster future access. Updates cache when `value` is passed.
+  //
+  // Also checks if object needs to be synched (dirty) or not
+  //
+  // Pass `options.remote = true` when object comes from remote
+  // Pass 'options.silent = true' to avoid events from being triggered.
+  function cache(type, id, object, options) {
+    var key;
+
+    if (object === undefined) {
+      object = false;
+    }
+
+    options = options || {};
+    key = '' + type + '/' + id;
+
+    if (object) {
+      $.extend(object, {
+        type: type,
+        id: id
+      });
+
+      setObject(type, id, object);
+
+      if (options.remote) {
+        clearChanged(type, id);
+        cachedObject[key] = $.extend(true, {}, object);
+        return cachedObject[key];
+      }
+
+    } else {
+
+      // if the cached key returns false, it means
+      // that we have removed that key. We just
+      // set it to false for performance reasons, so
+      // that we don't need to look it up again in localStorage
+      if (cachedObject[key] === false) {
+        return false;
+      }
+
+      // if key is cached, return it. But make sure
+      // to make a deep copy beforehand (=> true)
+      if (cachedObject[key]) {
+        return $.extend(true, {}, cachedObject[key]);
+      }
+
+      // if object is not yet cached, load it from localStore
+      object = getObject(type, id);
+
+      // stop here if object did not exist in localStore
+      // and cache it so we don't need to look it up again
+      if (object === false) {
+        clearChanged(type, id);
+        cachedObject[key] = false;
+        return false;
+      }
+
+    }
+
+    if (isMarkedAsDeleted(object)) {
+      markAsChanged(type, id, object, options);
+      cachedObject[key] = false;
+      return false;
+    }
+
+    // here is where we cache the object for
+    // future quick access
+    cachedObject[key] = $.extend(true, {}, object);
+
+    if (hasLocalChanges(object)) {
+      markAsChanged(type, id, cachedObject[key], options);
+    } else {
+      clearChanged(type, id);
+    }
+
+    return $.extend(true, {}, object);
+  }
+
+
+  // bootstrapping dirty objects, to make sure
+  // that removed objects get pushed after
+  // page reload.
+  //
+  function bootstrapDirtyObjects() {
+    var id, keys, obj, type, _i, _len, _ref;
+    keys = db.getItem('_dirty');
+
+    if (!keys) {
+      return;
+    }
+
+    keys = keys.split(',');
+    for (_i = 0, _len = keys.length; _i < _len; _i++) {
+      _ref = keys[_i].split('/'),
+      type = _ref[0],
+      id = _ref[1];
+      obj = cache(type, id);
+    }
+  }
+
+
+  //
+  // subscribe to events coming from account & our remote store.
+  //
+  function subscribeToOutsideEvents() {
+
+    // account events
+    events.on('account:cleanup', store.clear);
+    events.on('account:signup', markAllAsChanged);
+    events.on('remote:bootstrap:start', startBootstrappingMode);
+    events.on('remote:bootstrap:end', endBootstrappingMode);
+
+    // remote events
+    events.on('remote:change', handleRemoteChange);
+    events.on('remote:push', handlePushedObject);
+  }
+
+  // allow to run this once from outside
+  store.subscribeToOutsideEvents = function() {
+    subscribeToOutsideEvents();
+    delete store.subscribeToOutsideEvents;
+  };
+
+
+  //
+  // Marks object as changed (dirty). Triggers a `store:dirty` event immediately and a
+  // `store:idle` event once there is no change within 2 seconds
+  //
+  function markAsChanged(type, id, object, options) {
+    var key;
+
+    options = options || {};
+    key = '' + type + '/' + id;
+
+    dirty[key] = object;
+    saveDirtyIds();
+
+    if (options.silent) {
+      return;
+    }
+
+    triggerDirtyAndIdleEvents();
+  }
+
+  // Clear changed
+  // ---------------
+
+  // removes an object from the list of objects that are flagged to by synched (dirty)
+  // and triggers a `store:dirty` event
+  function clearChanged(type, id) {
+    var key;
+    if (type && id) {
+      key = '' + type + '/' + id;
+      delete dirty[key];
+    } else {
+      dirty = {};
+    }
+    saveDirtyIds();
+    return window.clearTimeout(dirtyTimeout);
+  }
+
+
+  // Mark all as changed
+  // ------------------------
+
+  // Marks all local object as changed (dirty) to make them sync
+  // with remote
+  function markAllAsChanged() {
+    return store.findAll().pipe(function(objects) {
+      var key, object, _i, _len;
+
+      for (_i = 0, _len = objects.length; _i < _len; _i++) {
+        object = objects[_i];
+        key = '' + object.type + '/' + object.id;
+        dirty[key] = object;
+      }
+
+      saveDirtyIds();
+      triggerDirtyAndIdleEvents();
+    });
+  }
+
+
+  // when a change come's from our remote store, we differentiate
+  // whether an object has been removed or added / updated and
+  // reflect the change in our local store.
+  function handleRemoteChange(typeOfChange, object) {
+    if (typeOfChange === 'remove') {
+      store.remove(object.type, object.id, {
+        remote: true
+      });
+    } else {
+      store.save(object.type, object.id, object, {
+        remote: true
+      });
+    }
+  }
+
+
+  //
+  // all local changes get bulk pushed. For each object with local
+  // changes that has been pushed we  trigger a sync event
+  function handlePushedObject(object) {
+    triggerEvents('sync', object);
+  }
+
+
+  // more advanced localStorage wrappers to find/save objects
+  function setObject(type, id, object) {
+    var key, store;
+
+    key = '' + type + '/' + id;
+    store = $.extend({}, object);
+
+    delete store.type;
+    delete store.id;
+    return db.setItem(key, JSON.stringify(store));
+  }
+  function getObject(type, id) {
+    var key, obj;
+
+    key = '' + type + '/' + id;
+    var json = db.getItem(key);
+
+    if (json) {
+      obj = JSON.parse(json);
+      obj.type = type;
+      obj.id = id;
+      return obj;
+    } else {
+      return false;
+    }
+  }
+
+
+  // store IDs of dirty objects
+  function saveDirtyIds() {
+    try {
+      if ($.isEmptyObject(dirty)) {
+        db.removeItem('_dirty');
+      } else {
+        var ids = Object.keys(dirty);
+        db.setItem('_dirty', ids.join(','));
+      }
+    } catch(e) {}
+  }
+
+  //
+  function now() {
+    return JSON.stringify(new Date()).replace(/['"]/g, '');
+  }
+
+  // only lowercase letters, numbers and dashes are allowed for ids
+  function isValidId(id) {
+    return new RegExp(/^[a-z0-9\-]+$/).test(id);
+  }
+
+  // just like ids, but must start with a letter or a $ (internal types)
+  function isValidType(type) {
+    return new RegExp(/^[a-z$][a-z0-9]+$/).test(type);
+  }
+
+  //
+  function isSemanticId(key) {
+    return new RegExp(/^[a-z$][a-z0-9]+\/[a-z0-9]+$/).test(key);
+  }
+
+  // `hasLocalChanges` returns true if there is a local change that
+  // has not been sync'd yet.
+  function hasLocalChanges(object) {
+    if (!object.updatedAt) {
+      return false;
+    }
+    if (!object._syncedAt) {
+      return true;
+    }
+    return object._syncedAt < object.updatedAt;
+  }
+
+  //
+  function isMarkedAsDeleted(object) {
+    return object._deleted === true;
+  }
+
+  // this is where all the store events get triggered,
+  // like add:task, change:note:abc4567, remove, etc.
+  function triggerEvents(eventName, object, options) {
+    store.trigger(eventName, object, options);
+    store.trigger('' + eventName + ':' + object.type, object, options);
+
+    if (eventName !== 'new') {
+      store.trigger('' + eventName + ':' + object.type + ':' + object.id, object, options);
+    }
+
+    // sync events have no changes, so we don't trigger
+    // "change" events.
+    if (eventName === 'sync') {
+      return;
+    }
+
+    store.trigger('change', eventName, object, options);
+    store.trigger('change:' + object.type, eventName, object, options);
+
+    if (eventName !== 'new') {
+      store.trigger('change:' + object.type + ':' + object.id, eventName, object, options);
+    }
+  }
+
+  // when an object gets changed, two special events get triggerd:
+  //
+  // 1. dirty event
+  //    the `dirty` event gets triggered immediately, for every
+  //    change that happens.
+  // 2. idle event
+  //    the `idle` event gets triggered after a short timeout of
+  //    no changes, e.g. 2 seconds.
+  var dirtyTimeout;
+  function triggerDirtyAndIdleEvents() {
+    store.trigger('dirty');
+    window.clearTimeout(dirtyTimeout);
+
+    dirtyTimeout = window.setTimeout(function() {
+      store.trigger('idle', store.changedObjects());
+    }, idleTimeout);
+  }
+
+  //
+  function startBootstrappingMode() {
+    bootstrapping = true;
+    store.trigger('bootstrap:start');
+  }
+
+  //
+  function endBootstrappingMode() {
+    var methodCall, method, args, defer;
+
+    bootstrapping = false;
+    while(queue.length > 0) {
+      methodCall = queue.shift();
+      method = methodCall[0];
+      args = methodCall[1];
+      defer = methodCall[2];
+      localStore[method].apply(localStore, args).then(defer.resolve, defer.reject);
+    }
+
+    store.trigger('bootstrap:end');
+  }
+
+  //
+  function enqueue(method, args) {
+    var defer = promises.defer();
+    queue.push([method, args, defer]);
+    return defer.promise();
+  }
+
+  //
+  // patchIfNotPersistant
+  //
+  function patchIfNotPersistant () {
+    if (!store.isPersistent()) {
+      db = {
+        getItem: function() { return null; },
+        setItem: function() { return null; },
+        removeItem: function() { return null; },
+        key: function() { return null; },
+        length: function() { return 0; }
+      };
+    }
+  }
+
+
+  //
+  // initialization
+  // ----------------
+  //
+
+  // if browser does not support local storage persistence,
+  // e.g. Safari in private mode, overite the respective methods.
+
+
+
+  //
+  // expose public API
+  //
+  // inherit from Hoodies Store API
+  store = storeApi;
+
+  // allow to run this once from outside
+  store.bootstrapDirtyObjects = function() {
+    bootstrapDirtyObjects();
+    delete store.bootstrapDirtyObjects;
+  };
+
+  // allow to run this once from outside
+  store.patchIfNotPersistant = function() {
+    patchIfNotPersistant();
+    delete store.patchIfNotPersistant;
+  };
+
+};
+
+/* exported hoodieConfig */
+
+// Hoodie Config API
+// ===================
+
+//
+var store = require('./store');
+
+module.exports = function () {
+
+  var type = '$config';
+  var id = 'hoodie';
+  var cache = {};
+
+  // public API
+  var config = {};
+
+
+  // set
+  // ----------
+
+  // adds a configuration
+  //
+  config.set = function set(key, value) {
+    var isSilent, update;
+
+    if (cache[key] === value) {
+      return;
+    }
+
+    cache[key] = value;
+
+    update = {};
+    update[key] = value;
+    isSilent = key.charAt(0) === '_';
+
+    return store.updateOrAdd(type, id, update, {
+      silent: isSilent
+    });
+  };
+
+  // get
+  // ----------
+
+  // receives a configuration
+  //
+  config.get = function get(key) {
+    return cache[key];
+  };
+
+  // clear
+  // ----------
+
+  // clears cache and removes object from store
+  //
+  config.clear = function clear() {
+    cache = {};
+    return store.remove(type, id);
+  };
+
+  // unset
+  // ----------
+
+  // unsets a configuration, is a simple alias for config.set(key, undefined)
+  //
+  config.unset = function unset(key) {
+    return config.set(key, undefined);
+  };
+
+  // load cache
+  // TODO: I really don't like this being here. And I don't like that if the
+  //       store API will be truly async one day, this will fall on our feet.
+  store.find(type, id).done(function(obj) {
+    cache = obj;
+  });
+
+  // exspose public API
+  return config;
+
+};
+
+
+// Hoodie.Account
+// ================
+
+//
+var events = require('./events');
+var promises = require('./promises');
+var uuid = require('./uuid');
+var config = require('./config');
+var remote = require('./remote_store');
+
+module.exports = function () {
+  // public API
+  var account = {};
+
+  // flag whether user is currently authenticated or not
+  var authenticated;
+
+  // cache for CouchDB _users doc
+  var userDoc = {};
+
+  // map of requestPromises. We maintain this list to avoid sending
+  // the same requests several times.
+  var requests = {};
+
+  // default couchDB user doc prefix
+  var userDocPrefix = 'org.couchdb.user';
+
+  // add events API
+  events({
+    context: account,
+    namespace: 'account'
+  });
+
+  // Authenticate
+  // --------------
+
+  // Use this method to assure that the user is authenticated:
+  // `hoodie.account.authenticate().done( doSomething ).fail( handleError )`
+  //
+  account.authenticate = function authenticate() {
+    var sendAndHandleAuthRequest;
+
+    // already tried to authenticate, and failed
+    if (authenticated === false) {
+      return promises.reject();
+    }
+
+    // already tried to authenticate, and succeeded
+    if (authenticated === true) {
+      return promises.resolveWith(account.username);
+    }
+
+    // if there is a pending signOut request, return its promise,
+    // but pipe it so that it always ends up rejected
+    //
+    if (requests.signOut && requests.signOut.state() === 'pending') {
+      return requests.signOut.then(promises.rejectWith);
+    }
+
+    // if there is a pending signIn request, return its promise
+    //
+    if (requests.signIn && requests.signIn.state() === 'pending') {
+      return requests.signIn;
+    }
+
+    // if username is not set, make sure to end the session
+    if (account.username === undefined) {
+      return sendSignOutRequest().then(function() {
+        authenticated = false;
+        return promises.reject();
+      });
+    }
+
+    // send request to check for session status. If there is a
+    // pending request already, return its promise.
+    //
+    sendAndHandleAuthRequest = function() {
+      return account.request('GET', '/_session').then(
+        handleAuthenticateRequestSuccess,
+        handleRequestError
+      );
+    };
+
+    return withSingleRequest('authenticate', sendAndHandleAuthRequest);
+  };
+
+
+  // sign up with username & password
+  // ----------------------------------
+
+  // uses standard CouchDB API to create a new document in _users db.
+  // The backend will automatically create a userDB based on the username
+  // address and approve the account by adding a 'confirmed' role to the
+  // user doc. The account confirmation might take a while, so we keep trying
+  // to sign in with a 300ms timeout.
+  //
+  account.signUp = function signUp(username, password) {
+
+    if (password === undefined) {
+      password = '';
+    }
+
+    if (!username) {
+      return promises.rejectWith({
+        error: 'username must be set'
+      });
+    }
+
+    if (account.hasAnonymousAccount()) {
+      return upgradeAnonymousAccount(username, password);
+    }
+
+    if (account.hasAccount()) {
+      return promises.rejectWith({
+        error: 'you have to sign out first'
+      });
+    }
+
+    // downcase username
+    username = username.toLowerCase();
+
+    var options = {
+      data: JSON.stringify({
+        _id: userDocKey(username),
+        name: userTypeAndId(username),
+        type: 'user',
+        roles: [],
+        password: password,
+        ownerHash: account.ownerHash,
+        database: account.db(),
+        updatedAt: now(),
+        createdAt: now(),
+        signedUpAt: username !== account.ownerHash ? now() : void 0
+      }),
+      contentType: 'application/json'
+    };
+
+    return account.request('PUT', userDocUrl(username), options).then(
+      handleSignUpSucces(username, password),
+      handleRequestError
+    );
+  };
+
+
+  // anonymous sign up
+  // -------------------
+
+  // If the user did not sign up himself yet, but data needs to be transfered
+  // to the couch, e.g. to send an email or to share data, the anonymousSignUp
+  // method can be used. It generates a random password and stores it locally
+  // in the browser.
+  //
+  // If the user signes up for real later, we 'upgrade' his account, meaning we
+  // change his username and password internally instead of creating another user.
+  //
+  account.anonymousSignUp = function anonymousSignUp() {
+    var password = uuid(10);
+    var username = account.ownerHash;
+
+    return account.signUp(username, password).done(function() {
+      setAnonymousPassword(password);
+      return account.trigger('signup:anonymous', username);
+    });
+  };
+
+
+  // hasAccount
+  // ---------------------
+
+  //
+  account.hasAccount = function hasAccount() {
+    return !!account.username;
+  };
+
+
+  // hasAnonymousAccount
+  // ---------------------
+
+  //
+  account.hasAnonymousAccount = function hasAnonymousAccount() {
+    return getAnonymousPassword() !== undefined;
+  };
+
+
+  // set / get / remove anonymous password
+  // ---------------------------------------
+
+  //
+  var anonymousPasswordKey = '_account.anonymousPassword';
+
+  function setAnonymousPassword(password) {
+    return config.set(anonymousPasswordKey, password);
+  }
+
+  function getAnonymousPassword() {
+    return config.get(anonymousPasswordKey);
+  }
+
+  function removeAnonymousPassword() {
+    return config.unset(anonymousPasswordKey);
+  }
+
+
+  // sign in with username & password
+  // ----------------------------------
+
+  // uses standard CouchDB API to create a new user session (POST /_session).
+  // Besides the standard sign in we also check if the account has been confirmed
+  // (roles include 'confirmed' role).
+  //
+  // NOTE: When signing in, all local data gets cleared beforehand (with a signOut).
+  //       Otherwise data that has been created beforehand (authenticated with
+  //       another user account or anonymously) would be merged into the user
+  //       account that signs in. That applies only if username isn't the same as
+  //       current username.
+  //
+  account.signIn = function signIn(username, password) {
+
+    if (username === null) {
+      username = '';
+    }
+
+    if (password === undefined) {
+      password = '';
+    }
+
+    // downcase
+    username = username.toLowerCase();
+
+    if (username !== account.username) {
+      return account.signOut({
+        silent: true
+      }).then(function() {
+        return sendSignInRequest(username, password);
+      });
+    } else {
+      return sendSignInRequest(username, password, {
+        reauthenticated: true
+      });
+    }
+  };
+
+
+  // sign out
+  // ---------
+
+  // uses standard CouchDB API to invalidate a user session (DELETE /_session)
+  //
+  account.signOut = function signOut(options) {
+
+    options = options || {};
+
+    if (!account.hasAccount()) {
+      return cleanup().then(function() {
+        if (!options.silent) {
+          return account.trigger('signout');
+        }
+      });
+    }
+    remote.disconnect();
+    return sendSignOutRequest().then(cleanupAndTriggerSignOut);
+  };
+
+
+  // Request
+  // ---
+
+  // shortcut for `hoodie.request`
+  //
+  account.request = function request(type, path, options) {
+    options = options || {};
+    return request.apply(arguments);
+  };
+
+
+  // db
+  // ----
+
+  // return name of db
+  //
+  account.db = function db() {
+    return 'user/' + account.ownerHash;
+  };
+
+
+  // fetch
+  // -------
+
+  // fetches _users doc from CouchDB and caches it in _doc
+  //
+  account.fetch = function fetch(username) {
+
+    if (username === undefined) {
+      username = account.username;
+    }
+
+    if (!username) {
+      return promises.rejectWith({
+        error: 'unauthenticated',
+        reason: 'not logged in'
+      });
+    }
+
+    return withSingleRequest('fetch', function() {
+      return account.request('GET', userDocUrl(username)).then(
+        null,
+        handleRequestError
+      ).done(function(response) {
+        userDoc = response;
+        return userDoc;
+      });
+    });
+  };
+
+
+  // change password
+  // -----------------
+
+  // Note: the hoodie API requires the currentPassword for security reasons,
+  // but couchDb doesn't require it for a password change, so it's ignored
+  // in this implementation of the hoodie API.
+  //
+  account.changePassword = function changePassword(currentPassword, newPassword) {
+
+    if (!account.username) {
+      return promises.rejectWith({
+        error: 'unauthenticated',
+        reason: 'not logged in'
+      });
+    }
+
+    remote.disconnect();
+
+    return account.fetch().then(
+      sendChangeUsernameAndPasswordRequest(currentPassword, null, newPassword),
+      handleRequestError
+    );
+  };
+
+
+  // reset password
+  // ----------------
+
+  // This is kind of a hack. We need to create an object anonymously
+  // that is not exposed to others. The only CouchDB API othering such
+  // functionality is the _users database.
+  //
+  // So we actualy sign up a new couchDB user with some special attributes.
+  // It will be picked up by the password reset worker and removeed
+  // once the password was resetted.
+  //
+  account.resetPassword = function resetPassword(username) {
+    var data, key, options, resetPasswordId;
+
+    resetPasswordId = config.get('_account.resetPasswordId');
+
+    if (resetPasswordId) {
+      return account.checkPasswordReset();
+    }
+
+    resetPasswordId = '' + username + '/' + (uuid());
+
+    config.set('_account.resetPasswordId', resetPasswordId);
+
+    key = '' + userDocPrefix + ':$passwordReset/' + resetPasswordId;
+
+    data = {
+      _id: key,
+      name: '$passwordReset/' + resetPasswordId,
+      type: 'user',
+      roles: [],
+      password: resetPasswordId,
+      createdAt: now(),
+      updatedAt: now()
+    };
+
+    options = {
+      data: JSON.stringify(data),
+      contentType: 'application/json'
+    };
+
+    // TODO: spec that checkPasswordReset gets executed
+    return withPreviousRequestsAborted('resetPassword', function() {
+      return account.request('PUT', '/_users/' + (encodeURIComponent(key)), options).then(
+        null, handleRequestError
+      ).done(account.checkPasswordReset);
+    });
+  };
+
+  // checkPasswordReset
+  // ---------------------
+
+  // check for the status of a password reset. It might take
+  // a while until the password reset worker picks up the job
+  // and updates it
+  //
+  // If a password reset request was successful, the $passwordRequest
+  // doc gets removed from _users by the worker, therefore a 401 is
+  // what we are waiting for.
+  //
+  // Once called, it continues to request the status update with a
+  // one second timeout.
+  //
+  account.checkPasswordReset = function checkPasswordReset() {
+    var hash, options, resetPasswordId, url, username;
+
+    // reject if there is no pending password reset request
+    resetPasswordId = config.get('_account.resetPasswordId');
+
+    if (!resetPasswordId) {
+      return promises.rejectWith({
+        error: 'missing'
+      });
+    }
+
+    // send request to check status of password reset
+    username = '$passwordReset/' + resetPasswordId;
+    url = '/_users/' + (encodeURIComponent(userDocPrefix + ':' + username));
+    hash = btoa(username + ':' + resetPasswordId);
+
+    options = {
+      headers: {
+        Authorization: 'Basic ' + hash
+      }
+    };
+
+    return withPreviousRequestsAborted('passwordResetStatus', function() {
+      return account.request('GET', url, options).then(
+        handlePasswordResetStatusRequestSuccess,
+        handlePasswordResetStatusRequestError
+      ).fail(function(error) {
+        if (error.error === 'pending') {
+          window.setTimeout(account.checkPasswordReset, 1000);
+          return;
+        }
+        return account.trigger('password_reset:error');
+      });
+    });
+  };
+
+
+  // change username
+  // -----------------
+
+  // Note: the hoodie API requires the current password for security reasons,
+  // but technically we cannot (yet) prevent the user to change the username
+  // without knowing the current password, so it's not impulemented in the current
+  // implementation of the hoodie API.
+  //
+  // But the current password is needed to login with the new username.
+  //
+  account.changeUsername = function changeUsername(currentPassword, newUsername) {
+    newUsername = newUsername || '';
+    return changeUsernameAndPassword(currentPassword, newUsername.toLowerCase());
+  };
+
+
+  // destroy
+  // ---------
+
+  // destroys a user's account
+  //
+  account.destroy = function destroy() {
+    if (!account.hasAccount()) {
+      return cleanupAndTriggerSignOut();
+    }
+
+    return account.fetch().then(
+      handleFetchBeforeDestroySuccess,
+      handleFetchBeforeDestroyError
+    ).then(cleanupAndTriggerSignOut);
+  };
+
+
+  // PRIVATE
+  // ---------
+
+  // setters
+  function setUsername(newUsername) {
+    if (account.username === newUsername) {
+      return;
+    }
+
+    account.username = newUsername;
+
+    return config.set('_account.username', newUsername);
+  }
+
+  function setOwner(newOwnerHash) {
+
+    if (account.ownerHash === newOwnerHash) {
+      return;
+    }
+
+    account.ownerHash = newOwnerHash;
+
+    // `ownerHash` is stored with every new object in the createdBy
+    // attribute. It does not get changed once it's set. That's why
+    // we have to force it to be change for the `$config/hoodie` object.
+    config.set('createdBy', newOwnerHash);
+
+    return config.set('_account.ownerHash', newOwnerHash);
+  }
+
+
+  //
+  // handle a successful authentication request.
+  //
+  // As long as there is no server error or internet connection issue,
+  // the authenticate request (GET /_session) does always return
+  // a 200 status. To differentiate whether the user is signed in or
+  // not, we check `userCtx.name` in the response. If the user is not
+  // signed in, it's null, otherwise the name the user signed in with
+  //
+  // If the user is not signed in, we difeerentiate between users that
+  // signed in with a username / password or anonymously. For anonymous
+  // users, the password is stored in local store, so we don't need
+  // to trigger an 'unauthenticated' error, but instead try to sign in.
+  //
+  function handleAuthenticateRequestSuccess(response) {
+    if (response.userCtx.name) {
+      authenticated = true;
+      setUsername(response.userCtx.name.replace(/^user(_anonymous)?\//, ''));
+      setOwner(response.userCtx.roles[0]);
+      return promises.resolveWith(account.username);
+    }
+
+    if (account.hasAnonymousAccount()) {
+      return account.signIn(account.username, getAnonymousPassword());
+    }
+
+    authenticated = false;
+    account.trigger('error:unauthenticated');
+    return promises.reject();
+  }
+
+
+  //
+  // standard error handling for AJAX requests
+  //
+  // in some case we get the object error directly,
+  // in others we get an xhr or even just a string back
+  // when the couch died entirely. Whe have to handle
+  // each case
+  //
+  function handleRequestError(error) {
+    var e;
+
+    error = error || {};
+
+    if (error.reason) {
+      return promises.rejectWith(error);
+    }
+
+    var xhr = error;
+
+    try {
+      error = JSON.parse(xhr.responseText);
+    } catch (_error) {
+      e = _error;
+      error = {
+        error: xhr.responseText || 'unknown'
+      };
+    }
+
+    return promises.rejectWith(error);
+  }
+
+
+  //
+  // handle response of a successful signUp request.
+  // Response looks like:
+  //
+  //     {
+  //         'ok': true,
+  //         'id': 'org.couchdb.user:joe',
+  //         'rev': '1-e8747d9ae9776706da92810b1baa4248'
+  //     }
+  //
+  function handleSignUpSucces(username, password) {
+
+    return function(response) {
+      account.trigger('signup', username);
+      userDoc._rev = response.rev;
+      return delayedSignIn(username, password);
+    };
+  }
+
+
+  //
+  // a delayed sign in is used after sign up and after a
+  // username change.
+  //
+  function delayedSignIn(username, password, options, defer) {
+
+    // delayedSignIn might call itself, when the user account
+    // is pending. In this case it passes the original defer,
+    // to keep a reference and finally resolve / reject it
+    // at some point
+    if (!defer) {
+      defer = promises.defer();
+    }
+
+    window.setTimeout(function() {
+      var promise = sendSignInRequest(username, password);
+      promise.done(defer.resolve);
+      promise.fail(function(error) {
+        if (error.error === 'unconfirmed') {
+
+          // It might take a bit until the account has been confirmed
+          delayedSignIn(username, password, options, defer);
+        } else {
+          defer.reject.apply(defer, arguments);
+        }
+      });
+
+    }, 300);
+
+    return defer.promise();
+  }
+
+
+  //
+  // parse a successful sign in response from couchDB.
+  // Response looks like:
+  //
+  //     {
+  //         'ok': true,
+  //         'name': 'test1',
+  //         'roles': [
+  //             'mvu85hy',
+  //             'confirmed'
+  //         ]
+  //     }
+  //
+  // we want to turn it into 'test1', 'mvu85hy' or reject the promise
+  // in case an error occured ('roles' array contains 'error')
+  //
+  function handleSignInSuccess(options) {
+    options = options || {};
+
+    return function(response) {
+      var defer, username;
+
+      defer = promises.defer();
+      username = response.name.replace(/^user(_anonymous)?\//, '');
+
+      //
+      // if an error occured, the userDB worker stores it to the $error attribute
+      // and adds the 'error' role to the users doc object. If the user has the
+      // 'error' role, we need to fetch his _users doc to find out what the error
+      // is, before we can reject the promise.
+      //
+      if (response.roles.indexOf('error') !== -1) {
+        account.fetch(username).fail(defer.reject).done(function() {
+          return defer.reject({
+            error: 'error',
+            reason: userDoc.$error
+          });
+        });
+        return defer.promise();
+      }
+
+      //
+      // When the userDB worker created the database for the user and everthing
+      // worked out, it adds the role 'confirmed' to the user. If the role is
+      // not present yet, it might be that the worker didn't pick up the the
+      // user doc yet, or there was an error. In this cases, we reject the promise
+      // with an 'uncofirmed error'
+      //
+      if (response.roles.indexOf('confirmed') === -1) {
+        return defer.reject({
+          error: 'unconfirmed',
+          reason: 'account has not been confirmed yet'
+        });
+      }
+
+      setUsername(username);
+      setOwner(response.roles[0]);
+      authenticated = true;
+
+      //
+      // options.verbose is true, when a user manually signed via hoodie.account.signIn().
+      // We need to differentiate to other signIn requests, for example right after
+      // the signup or after a session timed out.
+      //
+      if (!(options.silent || options.reauthenticated)) {
+        if (account.hasAnonymousAccount()) {
+          account.trigger('signin:anonymous', username);
+        } else {
+          account.trigger('signin', username);
+        }
+      }
+
+      // user reauthenticated, meaning
+      if (options.reauthenticated) {
+        account.trigger('reauthenticated', username);
+      }
+
+      account.fetch();
+      return defer.resolve(username, response.roles[0]);
+    };
+  }
+
+
+  //
+  // If the request was successful there might have occured an
+  // error, which the worker stored in the special $error attribute.
+  // If that happens, we return a rejected promise with the $error,
+  // error. Otherwise reject the promise with a 'pending' error,
+  // as we are not waiting for a success full response, but a 401
+  // error, indicating that our password was changed and our
+  // current session has been invalidated
+  //
+  function handlePasswordResetStatusRequestSuccess(response) {
+    var error;
+
+    if (response.$error) {
+      error = response.$error;
+    } else {
+      error = { error: 'pending' };
+    }
+    return promises.rejectWith(error);
+  }
+
+
+  //
+  // If the error is a 401, it's exactly what we've been waiting for.
+  // In this case we resolve the promise.
+  //
+  function handlePasswordResetStatusRequestError(xhr) {
+    if (xhr.status === 401) {
+      config.unset('_account.resetPasswordId');
+      account.trigger('passwordreset');
+
+      return promises.resolve();
+    } else {
+      return handleRequestError(xhr);
+    }
+  }
+
+
+  //
+  // change username and password in 3 steps
+  //
+  // 1. assure we have a valid session
+  // 2. update _users doc with new username and new password (if provided)
+  // 3. sign in with new credentials to create new sesion.
+  //
+  function changeUsernameAndPassword(currentPassword, newUsername, newPassword) {
+
+    return sendSignInRequest(account.username, currentPassword, {
+      silent: true
+    }).then(function() {
+      return account.fetch().then(
+        sendChangeUsernameAndPasswordRequest(currentPassword, newUsername, newPassword)
+      );
+    });
+  }
+
+
+  //
+  // turn an anonymous account into a real account
+  //
+  function upgradeAnonymousAccount(username, password) {
+    var currentPassword = getAnonymousPassword();
+
+    return changeUsernameAndPassword(currentPassword, username, password).done(function() {
+      account.trigger('signup', username);
+      removeAnonymousPassword();
+    });
+  }
+
+
+  //
+  // we now can be sure that we fetched the latest _users doc, so we can update it
+  // without a potential conflict error.
+  //
+  function handleFetchBeforeDestroySuccess() {
+
+    remote.disconnect();
+    userDoc._deleted = true;
+
+    return withPreviousRequestsAborted('updateUsersDoc', function() {
+      account.request('PUT', userDocUrl(), {
+        data: JSON.stringify(userDoc),
+        contentType: 'application/json'
+      });
+    });
+  }
+
+
+  //
+  // dependend on what kind of error we get, we want to ignore
+  // it or not.
+  // When we get a 'not_found' it means that the _users doc habe
+  // been removed already, so we don't need to do it anymore, but
+  // still want to finish the destroy locally, so we return a
+  // resolved promise
+  //
+  function handleFetchBeforeDestroyError(error) {
+    if (error.error === 'not_found') {
+      return promises.resolve();
+    } else {
+      return promises.rejectWith(error);
+    }
+  }
+
+  //
+  // remove everything form the current account, so a new account can be initiated.
+  //
+  function cleanup(options) {
+    options = options || {};
+
+    // hoodie.store is listening on this one
+    account.trigger('cleanup');
+    authenticated = options.authenticated;
+    config.clear();
+    setUsername(options.username);
+    setOwner(options.ownerHash || uuid());
+
+    return promises.resolve();
+  }
+
+
+  //
+  function cleanupAndTriggerSignOut() {
+    return cleanup().then(function() {
+      return account.trigger('signout');
+    });
+  }
+
+
+  //
+  // depending on wether the user signedUp manually or has been signed up
+  // anonymously the prefix in the CouchDB _users doc differentiates.
+  // An anonymous user is characterized by its username, that equals
+  // its ownerHash (see `anonymousSignUp`)
+  //
+  // We differentiate with `hasAnonymousAccount()`, because `userTypeAndId`
+  // is used within `signUp` method, so we need to be able to differentiate
+  // between anonyomus and normal users before an account has been created.
+  //
+  function userTypeAndId(username) {
+    var type;
+
+    if (username === account.ownerHash) {
+      type = 'user_anonymous';
+    } else {
+      type = 'user';
+    }
+    return '' + type + '/' + username;
+  }
+
+
+  //
+  // turn a username into a valid _users doc._id
+  //
+  function userDocKey(username) {
+    username = username || account.username;
+    return '' + userDocPrefix + ':' + (userTypeAndId(username));
+  }
+
+  //
+  // get URL of my _users doc
+  //
+  function userDocUrl(username) {
+    return '/_users/' + (encodeURIComponent(userDocKey(username)));
+  }
+
+
+  //
+  // update my _users doc.
+  //
+  // If a new username has been passed, we set the special attribut $newUsername.
+  // This will let the username change worker create create a new _users doc for
+  // the new username and remove the current one
+  //
+  // If a new password has been passed, salt and password_sha get removed
+  // from _users doc and add the password in clear text. CouchDB will replace it with
+  // according password_sha and a new salt server side
+  //
+  function sendChangeUsernameAndPasswordRequest(currentPassword, newUsername, newPassword) {
+
+    return function() {
+      // prepare updated _users doc
+      var data = $.extend({}, userDoc);
+
+      if (newUsername) {
+        data.$newUsername = newUsername;
+      }
+
+      data.updatedAt = now();
+      data.signedUpAt = data.signedUpAt || now();
+
+      // trigger password update when newPassword set
+      if (newPassword !== null) {
+        delete data.salt;
+        delete data.password_sha;
+        data.password = newPassword;
+      }
+
+      var options = {
+        data: JSON.stringify(data),
+        contentType: 'application/json'
+      };
+
+      return withPreviousRequestsAborted('updateUsersDoc', function() {
+        return account.request('PUT', userDocUrl(), options).then(
+          handleChangeUsernameAndPasswordRequest(newUsername, newPassword || currentPassword),
+          handleRequestError
+        );
+      });
+
+    };
+  }
+
+
+  //
+  // depending on whether a newUsername has been passed, we can sign in right away
+  // or have to use the delayed sign in to give the username change worker some time
+  //
+  function handleChangeUsernameAndPasswordRequest(newUsername, newPassword) {
+
+    return function() {
+      remote.disconnect();
+
+      if (newUsername) {
+        return delayedSignIn(newUsername, newPassword, {
+          silent: true
+        });
+      } else {
+        return account.signIn(account.username, newPassword);
+      }
+    };
+  }
+
+
+  //
+  // make sure that the same request doesn't get sent twice
+  // by cancelling the previous one.
+  //
+  function withPreviousRequestsAborted(name, requestFunction) {
+    if (requests[name] !== undefined) {
+      if (typeof requests[name].abort === 'function') {
+        requests[name].abort();
+      }
+    }
+    requests[name] = requestFunction();
+    return requests[name];
+  }
+
+
+  //
+  // if there is a pending request, return its promise instead
+  // of sending another request
+  //
+  function withSingleRequest(name, requestFunction) {
+
+    if (requests[name] !== undefined) {
+      if (typeof requests[name].state === 'function') {
+        if (requests[name].state() === 'pending') {
+          return requests[name];
+        }
+      }
+    }
+
+    requests[name] = requestFunction();
+    return requests[name];
+  }
+
+
+  //
+  function sendSignOutRequest() {
+    return withSingleRequest('signOut', function() {
+      return account.request('DELETE', '/_session').then(null, handleRequestError);
+    });
+  }
+
+
+  //
+  // the sign in request that starts a CouchDB session if
+  // it succeeds. We separated the actual sign in request from
+  // the signIn method, as the latter also runs signOut intenrtally
+  // to clean up local data before starting a new session. But as
+  // other methods like signUp or changePassword do also need to
+  // sign in the user (again), these need to send the sign in
+  // request but without a signOut beforehand, as the user remains
+  // the same.
+  //
+  function sendSignInRequest(username, password, options) {
+    var requestOptions = {
+      data: {
+        name: userTypeAndId(username),
+        password: password
+      }
+    };
+
+    return withPreviousRequestsAborted('signIn', function() {
+      var promise = account.request('POST', '/_session', requestOptions);
+
+      return promise.then(
+        handleSignInSuccess(options),
+        handleRequestError
+      );
+    });
+  }
+
+  //
+  function now() {
+    return new Date();
+  }
+
+
+  // TODO: we should move the owner hash on hoodie core, as
+  //       other modules depend on it as well, like hoodie.store.
+  // the ownerHash gets stored in every object created by the user.
+  // Make sure we have one.
+  account.ownerHash = config.get('_account.ownerHash');
+
+  if (!account.ownerHash) {
+    setOwner(uuid());
+  }
+
+  return account;
+
+};
+
+/* global open:true */
+
+// AccountRemote
+// ===============
+
+// Connection / Socket to our couch
+//
+// AccountRemote is using CouchDB's `_changes` feed to
+// listen to changes and `_bulk_docs` to push local changes
+//
+// When hoodie.remote is continuously syncing (default),
+// it will continuously  synchronize with local store,
+// otherwise sync, pull or push can be called manually
+//
+var open = require('./open');
+var account = require('./account');
+var store = require('./store');
+var events = require('./events');
+var config = require('./config');
+
+module.exports = function () {
+
+  // inherit from Hoodies Store API
+  var remote = open(account.db(), {
+
+    // we're always connected to our own db
+    connected: true,
+
+    // do not prefix files for my own remote
+    prefix: '',
+
+    //
+    since: sinceNrCallback,
+
+    //
+    defaultObjectsToPush: store.changedObjects,
+
+    //
+    knownObjects: store.index().map( function(key) {
+      var typeAndId = key.split(/\//);
+      return { type: typeAndId[0], id: typeAndId[1]};
+    })
+  });
+
+  // trigger
+  // ---------
+
+  // proxies to hoodie.trigger
+  remote.trigger = function trigger() {
+    var eventName;
+
+    eventName = arguments[0];
+
+    var parameters = 2 <= arguments.length ? Array.prototype.slice.call(arguments, 1) : [];
+
+    return events.trigger.apply(['remote:' + eventName].concat(Array.prototype.slice.call(parameters)));
+  };
+
+
+  // on
+  // ---------
+
+  // proxies to hoodie.on
+  remote.on = function on(eventName, data) {
+    eventName = eventName.replace(/(^| )([^ ]+)/g, '$1'+'remote:$2');
+    return events.on(eventName, data);
+  };
+
+
+  // unbind
+  // ---------
+
+  // proxies to hoodie.unbind
+  remote.unbind = function unbind(eventName, callback) {
+    eventName = eventName.replace(/(^| )([^ ]+)/g, '$1'+'remote:$2');
+    return events.unbind(eventName, callback);
+  };
+
+
+  // Private
+  // ---------
+
+  // getter / setter for since number
+  //
+  function sinceNrCallback(sinceNr) {
+    if (sinceNr) {
+      return config.set('_remote.since', sinceNr);
+    }
+
+    return config.get('_remote.since') || 0;
+  }
+
+  //
+  // subscribe to events coming from account
+  //
+  function subscribeToEvents() {
+
+    events.on('remote:connect', function() {
+      events.on('store:idle', remote.push);
+      remote.push();
+    });
+
+    events.on('remote:disconnect', function() {
+      events.unbind('store:idle', remote.push);
+    });
+
+    events.on('disconnected', remote.disconnect);
+    events.on('reconnected', remote.connect);
+
+    // account events
+    events.on('account:signin', function() {
+      remote.connect(account.db());
+    });
+
+    events.on('account:reauthenticated', remote.connect);
+    events.on('account:signout', remote.disconnect);
+  }
+
+  // allow to run this once from outside
+  remote.subscribeToEvents = function() {
+    subscribeToEvents();
+    delete remote.subscribeToEvents;
+  };
+
+  return remote;
+
+};
+
+// Tasks
+// ============
+
+// This class defines the hoodie.task API.
+//
+// The returned API provides the following methods:
+//
+// * start
+// * cancel
+// * restart
+// * remove
+// * on
+// * one
+// * unbind
+//
+// At the same time, the returned API can be called as function returning a
+// store scoped by the passed type, for example
+//
+//     var emailTasks = hoodie.task('email');
+//     emailTasks.start( properties );
+//     emailTasks.cancel('id123');
+//
+var events = require('./events');
+var promises = require('./promises');
+var scopedTask = require('./scoped_task');
+var account = require('./account');
+var store = require('./store');
+
+module.exports = function () {
+
+  // public API
+  var api = function api(type, id) {
+    return scopedTask(api, {
+      type: type,
+      id: id
+    });
+  };
+
+  // add events API
+  events({
+    context: api,
+    namespace: 'task'
+  });
+
+
+  // start
+  // -------
+
+  // start a new task. If the user has no account yet, hoodie tries to sign up
+  // for an anonymous account in the background. If that fails, the returned
+  // promise will be rejected.
+  //
+  api.start = function(type, properties) {
+    if (account.hasAccount()) {
+      return store.add('$' + type, properties).then(handleNewTask);
+    }
+
+    return account.anonymousSignUp().then( function() {
+      return api.start(type, properties);
+    });
+  };
+
+
+  // cancel
+  // -------
+
+  // cancel a running task
+  //
+  api.cancel = function(type, id) {
+    return store.update('$' + type, id, {
+      cancelledAt: now()
+    }).then(handleCancelledTask);
+  };
+
+
+  // restart
+  // ---------
+
+  // first, we try to cancel a running task. If that succeeds, we start
+  // a new one with the same properties as the original
+  //
+  api.restart = function(type, id, update) {
+    var start = function(object) {
+      $.extend(object, update);
+      delete object.$error;
+      delete object.$processedAt;
+      delete object.cancelledAt;
+      return api.start(object.type, object);
+    };
+
+    return api.cancel(type, id).then(start);
+  };
+
+  // cancelAll
+  // -----------
+
+  //
+  api.cancelAll = function(type) {
+    return findAll(type).then( cancelTaskObjects );
+  };
+
+  // restartAll
+  // -----------
+
+  //
+  api.restartAll = function(type, update) {
+    if (typeof type === 'object') {
+      update = type;
+    }
+    return findAll(type).then( function(taskObjects) {
+      restartTaskObjects(taskObjects, update);
+    });
+  };
+
+
+  //
+  // subscribe to store events
+  // we subscribe to all store changes, pipe through the task ones,
+  // making a few changes along the way.
+  //
+  function subscribeToStoreEvents() {
+
+    // account events
+    events.on('store:change', handleStoreChange);
+  }
+
+  // allow to run this only once from outside (during Hoodie initialization)
+  api.subscribeToStoreEvents = function() {
+    subscribeToStoreEvents();
+    delete api.subscribeToStoreEvents;
+  };
+
+
+  // Private
+  // -------
+
+  //
+  function handleNewTask(object) {
+    var defer = promises.defer();
+    var taskStore = store(object.type, object.id);
+
+    taskStore.on('remove', function(object) {
+
+      // remove "$" from type
+      object.type = object.type.substr(1);
+
+      // task finished by worker.
+      if (object.finishedAt) {
+        return defer.resolve(object);
+      }
+
+      // manually removed / cancelled.
+      defer.reject(object);
+    });
+
+    taskStore.on('error', function(error, object) {
+
+      // remove "$" from type
+      object.type = object.type.substr(1);
+
+      defer.reject(error, object);
+    });
+
+    return defer.promise();
+  }
+
+  //
+  function handleCancelledTask (task) {
+    var defer;
+    var type = '$'+task.type;
+    var id = task.id;
+    var removePromise = store.remove(type, id);
+
+    if (!task._rev) {
+      // task has not yet been synced.
+      return removePromise;
+    }
+
+    defer = promises.defer();
+    events.one('store:sync:' + type + ':' + id, defer.resolve);
+    removePromise.fail(defer.reject);
+
+    return defer.promise();
+  }
+
+  //
+  function handleStoreChange(eventName, object, options) {
+    if (object.type[0] !== '$') {
+      return;
+    }
+
+    object.type = object.type.substr(1);
+    triggerEvents(eventName, object, options);
+  }
+
+  //
+  function findAll (type) {
+    var startsWith = '$';
+    var filter;
+    if (type) {
+      startsWith += type;
+    }
+
+    filter = function(object) {
+      return object.type.indexOf(startsWith) === 0;
+    };
+    return store.findAll(filter);
+  }
+
+  //
+  function cancelTaskObjects (taskObjects) {
+    return taskObjects.map( function(taskObject) {
+      return api.cancel(taskObject.type.substr(1), taskObject.id);
+    });
+  }
+
+  //
+  function restartTaskObjects (taskObjects, update) {
+    return taskObjects.map( function(taskObject) {
+      return api.restart(taskObject.type.substr(1), taskObject.id, update);
+    });
+  }
+
+  // this is where all the task events get triggered,
+  // like add:message, change:message:abc4567, remove, etc.
+  function triggerEvents(eventName, task, options) {
+    var error;
+
+    // "new" tasks are trigger as "start" events
+    if (eventName === 'new') {
+      eventName = 'start';
+    }
+
+    if (eventName === 'remove' && task.cancelledAt) {
+      eventName = 'cancel';
+    }
+
+    if (eventName === 'remove' && task.$processedAt) {
+      eventName = 'success';
+    }
+
+    if (eventName === 'update' && task.$error) {
+      eventName = 'error';
+      error = task.$error;
+      delete task.$error;
+
+      api.trigger('error', error, task, options);
+      api.trigger('error:' + task.type, error, task, options);
+      api.trigger('error:' + task.type + ':' + task.id, error, task, options);
+
+      options = $.extend({}, options, {error: error});
+      api.trigger('change', 'error', task, options);
+      api.trigger('change:' + task.type, 'error', task, options);
+      api.trigger('change:' + task.type + ':' + task.id, 'error', task, options);
+      return;
+    }
+
+    // ignore all the other events
+    if (eventName !== 'start' && eventName !== 'cancel' && eventName !== 'success') {
+      return;
+    }
+
+    api.trigger(eventName, task, options);
+    api.trigger(eventName + ':' + task.type, task, options);
+
+    if (eventName !== 'start') {
+      api.trigger(eventName + ':' + task.type + ':' + task.id, task, options);
+    }
+
+    api.trigger('change', eventName, task, options);
+    api.trigger('change:' + task.type, eventName, task, options);
+
+    if (eventName !== 'start') {
+      api.trigger('change:' + task.type + ':' + task.id, eventName, task, options);
+    }
+  }
+
+  function now() {
+    return JSON.stringify(new Date()).replace(/['"]/g, '');
+  }
+
+  return api;
+
+};
+
+
+// scoped Store
+// ============
+
+// same as store, but with type preset to an initially
+// passed value.
+
+var events = require('./events');
+
+module.exports = function (taskApi, options) {
+
+  var type = options.type;
+  var id = options.id;
+
+  var api = {};
+
+  // scoped by type only
+  if (!id) {
+
+    // add events
+    events({
+      context: api,
+      namespace: 'task:' + type
+    });
+
+    //
+    api.start = function start(properties) {
+      return taskApi.start(type, properties);
+    };
+
+    //
+    api.cancel = function cancel(id) {
+      return taskApi.cancel(type, id);
+    };
+
+    //
+    api.restart = function restart(id, update) {
+      return taskApi.restart(type, id, update);
+    };
+
+    //
+    api.cancelAll = function cancelAll() {
+      return taskApi.cancelAll(type);
+    };
+
+    //
+    api.restartAll = function restartAll(update) {
+      return taskApi.restartAll(type, update);
+    };
+  }
+
+  // scoped by both: type & id
+  if (id) {
+
+    // add events
+    events({
+      context: api,
+      namespace: 'task:' + type + ':' + id
+    });
+
+    //
+    api.cancel = function cancel() {
+      return taskApi.cancel(type, id);
+    };
+
+    //
+    api.restart = function restart(update) {
+      return taskApi.restart(type, id, update);
+    };
+  }
+
+  return api;
+};
+
+})(window);

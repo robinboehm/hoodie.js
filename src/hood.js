@@ -4,12 +4,6 @@
 // the door to world domination (apps)
 //
 
-//var task = require('./hoodie/task');
-//var config = require('./hoodie/config');
-//var account = require('./hoodie/account');
-//var remote = require('./hoodie/remote_store');
-//var account = require('./hoodie/account');
-
 
 module.exports = function (baseUrl) {
 
@@ -31,8 +25,13 @@ module.exports = function (baseUrl) {
   var connection = require('./hoodie/connection');
   var UUID = require('./hoodie/uuid');
   var dispose = require('./hoodie/dispose');
-  //var open = require('./hoodie/open')();
+  var open = require('./hoodie/open')();
   var store = require('./hoodie/store')(self);
+  var task = require('./hoodie/task');
+  var config = require('./hoodie/config');
+  var account = require('./hoodie/account');
+  var remote = require('./hoodie/remote_store');
+
 
   //
   // Extending hoodie core
@@ -85,10 +84,67 @@ module.exports = function (baseUrl) {
 
 
   // * hoodie.open
-  //self.open = open;
+  self.open = open;
 
 
   // * hoodie.store
-  //self.store = store;
+  self.store = store;
+
+
+  // * hoodie.task
+  self.task = task;
+
+
+  // * hoodie.config
+  self.config = config;
+
+
+  // * hoodie.account
+  self.account = account = require('./hoodie/account');
+
+
+  // * hoodie.remote
+  self.remote = remote;
+
+
+  //
+  // Initializations
+  //
+
+  // set username from config (local store)
+  self.account.username = config.get('_account.username');
+
+  // check for pending password reset
+  self.account.checkPasswordReset();
+
+  // clear config on sign out
+  events.on('account:signout', config.clear);
+
+  // hoodie.store
+  self.store.patchIfNotPersistant();
+  self.store.subscribeToOutsideEvents();
+  self.store.bootstrapDirtyObjects();
+
+  // hoodie.remote
+  self.remote.subscribeToEvents();
+
+  // hoodie.task
+  self.task.subscribeToStoreEvents();
+
+  // authenticate
+  // we use a closure to not pass the username to connect, as it
+  // would set the name of the remote store, which is not the username.
+  self.account.authenticate().then(function( /* username */ ) {
+    remote.connect();
+  });
+
+  // check connection when browser goes online / offline
+  global.addEventListener('online', self.checkConnection, false);
+  global.addEventListener('offline', self.checkConnection, false);
+
+
+  // start checking connection
+  self.checkConnection();
+
 };
 

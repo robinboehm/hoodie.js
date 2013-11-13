@@ -36,6 +36,10 @@ var utils = require('util');
 
 module.exports = function (hoodie, options) {
 
+  var self = this;
+
+  this.options = options || {};
+
   // persistance logic
   var backend = {};
 
@@ -46,14 +50,20 @@ module.exports = function (hoodie, options) {
     hoodie: hoodie
   };
 
-  var storeName = options.name || 'store';
+  var storeName;
+
+  if (!this.options.name) {
+    storeName = 'store';
+  } else {
+    storeName = this.options.name;
+  }
 
   // public API
   var api = function api(type, id) {
     var scopedOptions = $.extend(true, {
       type: type,
       id: id
-    }, options);
+    }, self.options);
 
     return scopedStore(hoodie, api, scopedOptions);
   };
