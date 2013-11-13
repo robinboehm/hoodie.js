@@ -3,7 +3,7 @@
 // Open stores
 // -------------
 
-var remoteStoreApi = require('./store');
+var remoteStoreApi = require('./remote_store');
 
 module.exports = function () {
   var $extend = $.extend;

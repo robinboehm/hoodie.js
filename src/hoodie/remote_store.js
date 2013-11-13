@@ -41,7 +41,7 @@ var uuid = require('./uuid');
 var connection = require('./connection');
 var promises = require('./promises');
 var request = require('./request');
-var remoteStoreApi = require('./store');
+var storeApi = require('./store');
 
 module.exports = function (options) {
 
@@ -156,7 +156,7 @@ module.exports = function (options) {
   };
 
 
-  var remote = remoteStoreApi({
+  var remote = storeApi({
 
     name: options.name,
 
