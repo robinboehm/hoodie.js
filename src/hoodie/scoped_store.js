@@ -12,6 +12,8 @@ module.exports = function (hoodie, options) {
   // name
   var storeName;
 
+  this.options = options || {};
+
   if (!this.options.name) {
     storeName = 'store';
   } else {
