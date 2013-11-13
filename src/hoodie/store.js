@@ -376,8 +376,6 @@ module.exports = function (hoodie, options) {
     return utils.inherits(promiseApi, methods);
   };
 
-  debugger
-
   // required backend methods
   // -------------------------
   if (!options.backend) {
