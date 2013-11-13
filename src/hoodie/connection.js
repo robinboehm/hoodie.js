@@ -39,7 +39,7 @@ var checkConnection = function () {
     return req;
   }
 
-  window.clearTimeout(checkConnectionTimeout);
+  global.clearTimeout(checkConnectionTimeout);
 
   checkConnectionRequest = request('GET', '/').then(
     handleCheckConnectionSuccess,
