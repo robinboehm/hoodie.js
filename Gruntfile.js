@@ -96,7 +96,7 @@ module.exports = function(grunt) {
 
     browserify: {
       build: {
-        src: ['src/hood.js'],
+        src: ['src/hoodie.js'],
         dest: 'dist/hoodie.js',
         options: {
           external: 'jquery',
@@ -104,7 +104,7 @@ module.exports = function(grunt) {
           debug: true
         }
       }
-    },
+    }
 
   });
 
