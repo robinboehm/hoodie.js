@@ -24,9 +24,7 @@ module.exports = function (hoodie, options) {
   options = options || {};
 
   // make sure callbacks hash exists
-  if (!hoodie.eventsCallbacks) {
-    hoodie.eventsCallbacks = {};
-  }
+  hoodie.eventsCallbacks || hoodie.eventsCallbacks || {};
 
   if (options.context) {
     context = options.context;
