@@ -2,7 +2,7 @@
 
 // hoodie.dispose
 // ================
-var events = require('./events');
+var events = require('../events');
 
 module.exports = function () {
 
