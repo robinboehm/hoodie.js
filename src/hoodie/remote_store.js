@@ -37,7 +37,7 @@
 //
 
 //
-var uuid = require('./uuid');
+var uuid = require('./utils/uuid');
 var connection = require('./connection');
 var promises = require('./promises');
 var request = require('./request');

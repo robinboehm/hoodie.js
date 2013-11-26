@@ -5,7 +5,7 @@
 //
 var events = require('./events');
 var promises = require('./promises');
-var uuid = require('./uuid');
+var uuid = require('./utils/uuid');
 var config = require('./config');
 var remote = require('./remote_store');
 

@@ -65,11 +65,11 @@ module.exports = function (baseUrl) {
 
 
   // * hoodie.uuid
-  self.UUID = require('./hoodie/uuid');
+  self.UUID = require('./hoodie/utils/uuid'); // use node-uuid for real uuids
 
 
   // * hoodie.dispose
-  self.dispose = require('./hoodie/dispose');
+  self.dispose = require('./hoodie/utils/dispose');
 
 
   // * hoodie.open
@@ -127,13 +127,13 @@ module.exports = function (baseUrl) {
     //self.remote.connect();
   //});
 
-  //// check connection when browser goes online / offline
-  //global.addEventListener('online', self.checkConnection, false);
-  //global.addEventListener('offline', self.checkConnection, false);
+  // check connection when browser goes online / offline
+  global.addEventListener('online', self.checkConnection, false);
+  global.addEventListener('offline', self.checkConnection, false);
 
 
-  //// start checking connection
-  //self.checkConnection();
+  // start checking connection
+  self.checkConnection();
 
 };
 

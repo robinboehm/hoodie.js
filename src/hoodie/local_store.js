@@ -4,7 +4,7 @@
 // window.localStrage wrapper and more
 //
 
-var uuid = require('./uuid');
+var uuid = require('./utils/uuid');
 var account = require('./account');
 var promises = require('./promises');
 var events = require('./events');
