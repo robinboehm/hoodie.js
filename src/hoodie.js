@@ -31,7 +31,7 @@ var account = require('./hoodie/account');
 //     hoodie = new Hoodie
 //
 
-module.exports = function Hoodie(baseUrl) {
+var Hoodie = function Hoodie(baseUrl) {
   var hoodie = this;
 
   // enforce initialization with `new`
@@ -194,3 +194,5 @@ function applyExtensions(hoodie) {
   }
 }
 
+
+module.exports = Hoodie;
