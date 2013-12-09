@@ -564,7 +564,10 @@ function hoodieRemoteStore (hoodie, options) {
       currentRevId = _ref[1];
     } catch (_error) {}
     currentRevNr = parseInt(currentRevNr, 10) || 0;
-    newRevisionId = generateNewRevisionId();
+
+    // https://github.com/hoodiehq/hoodie.js/issues/206
+    // `generateNewRevisionId()` is DEPRECATED and should be removed before 1.0
+    newRevisionId = attributes._next_rev || generateNewRevisionId();
 
     // local changes are not meant to be replicated outside of the
     // users database, therefore the `-local` suffix.

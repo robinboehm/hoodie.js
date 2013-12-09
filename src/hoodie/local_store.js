@@ -127,6 +127,12 @@ function hoodieStore (hoodie) {
       delete object._$local;
     }
 
+    // add next _rev ID
+    // https://github.com/hoodiehq/hoodie.js/issues/206
+    if (! object._next_rev || options.remote) {
+      object._next_rev = hoodie.generateId(9);
+    }
+
     defer = hoodie.defer();
 
     try {
