@@ -4,7 +4,7 @@
 // same as store, but with type preset to an initially
 // passed value.
 //
-var hoodieEvents = require('./events');
+var hoodieEvents = require('../events');
 
 //
 function hoodieScopedTask(hoodie, taskApi, options) {

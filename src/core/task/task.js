@@ -20,8 +20,11 @@
 //     emailTasks.start( properties );
 //     emailTasks.cancel('id123');
 //
-var hoodieEvents = require('./events');
-var hoodieScopedTask = require('./scoped_task');
+var hoodieEvents = require('../events');
+var hoodieScopedTask = require('../task/scoped');
+var HoodieError = require('../error');
+
+var extend = require('extend');
 
 //
 function hoodieTask(hoodie) {
@@ -59,7 +62,9 @@ function hoodieTask(hoodie) {
   // cancel a running task
   //
   api.cancel = function(type, id) {
-    return hoodie.store.update('$'+type, id, { cancelledAt: now() }).then(handleCancelledTask);
+    return hoodie.store.update('$' + type, id, {
+      cancelledAt: now()
+    }).then(handleCancelledTaskObject);
   };
 
 
@@ -71,12 +76,13 @@ function hoodieTask(hoodie) {
   //
   api.restart = function(type, id, update) {
     var start = function(object) {
-      $.extend(object, update);
+      extend(object, update);
       delete object.$error;
       delete object.$processedAt;
       delete object.cancelledAt;
       return api.start(object.type, object);
     };
+
     return api.cancel(type, id).then(start);
   };
 
@@ -93,12 +99,15 @@ function hoodieTask(hoodie) {
 
   //
   api.restartAll = function(type, update) {
+
     if (typeof type === 'object') {
       update = type;
     }
+
     return findAll(type).then( function(taskObjects) {
       restartTaskObjects(taskObjects, update);
     });
+
   };
 
 
@@ -108,7 +117,6 @@ function hoodieTask(hoodie) {
   // making a few changes along the way.
   //
   function subscribeToOutsideEvents() {
-
     // account events
     hoodie.on('store:change', handleStoreChange);
   }
@@ -139,27 +147,43 @@ function hoodieTask(hoodie) {
       }
 
       // manually removed / cancelled.
-      defer.reject(object);
+      defer.reject(new HoodieError({
+        message: 'Task has been cancelled',
+        task: object
+      }));
     });
-    taskStore.on('error', function(error, object) {
+
+    taskStore.on('update', function(object) {
+      var error = object.$error;
+
+      if (! object.$error) {
+        return;
+      }
 
       // remove "$" from type
       object.type = object.type.substr(1);
 
-      defer.reject(error, object);
+      delete object.$error;
+      error.object = object;
+      error.message = error.message || 'Something went wrong';
+
+      defer.reject(new HoodieError(error));
+
+      // remove errored task
+      hoodie.store.remove('$' + object.type, object.id);
     });
 
     return defer.promise();
   }
 
   //
-  function handleCancelledTask (task) {
+  function handleCancelledTaskObject (taskObject) {
     var defer;
-    var type = '$'+task.type;
-    var id = task.id;
+    var type = taskObject.type; // no need to prefix with $, it's already prefixed.
+    var id = taskObject.id;
     var removePromise = hoodie.store.remove(type, id);
 
-    if (!task._rev) {
+    if (!taskObject._rev) {
       // task has not yet been synced.
       return removePromise;
     }
@@ -236,10 +260,14 @@ function hoodieTask(hoodie) {
       api.trigger(task.type + ':error', error, task, options);
       api.trigger(task.type + ':' + task.id + ':error', error, task, options);
 
-      options = $.extend({}, options, {error: error});
+      options = extend({}, options, {
+        error: error
+      });
+
       api.trigger('change', 'error', task, options);
       api.trigger(task.type + ':change', 'error', task, options);
       api.trigger(task.type + ':' + task.id + ':change', 'error', task, options);
+
       return;
     }
 

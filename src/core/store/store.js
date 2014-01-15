@@ -29,11 +29,15 @@
 //     taskStore.findAll().then( showAllTasks );
 //     taskStore.update('id123', {done: true});
 //
-var hoodieScopedStoreApi = require('./store');
+
+//
+var hoodieScopedStoreApi = require('./scoped_store');
 var hoodieEvents = require('./events');
 var HoodieError = require('./error');
 var HoodieObjectTypeError = require('./error/object_type');
 var HoodieObjectIdError = require('./error/object_id');
+
+var extend = require('extend');
 
 //
 function hoodieStoreApi(hoodie, options) {
@@ -53,12 +57,15 @@ function hoodieStoreApi(hoodie, options) {
 
   // public API
   var api = function api(type, id) {
-    var scopedOptions = $.extend(true, {type: type, id: id}, options);
+    var scopedOptions = extend(true, {type: type, id: id}, options);
     return hoodieScopedStoreApi(hoodie, api, scopedOptions);
   };
 
   // add event API
-  hoodieEvents(hoodie, { context: api, namespace: storeName });
+  hoodieEvents(hoodie, {
+    context: api,
+    namespace: storeName
+  });
 
 
   // Validate
@@ -74,6 +81,7 @@ function hoodieStoreApi(hoodie, options) {
   api.validate = options.validate;
 
   if (!options.validate) {
+
     api.validate = function(object /*, options */) {
 
       if (!object) {
@@ -82,6 +90,7 @@ function hoodieStoreApi(hoodie, options) {
           message: 'No object passed.'
         });
       }
+
       if (HoodieObjectTypeError.isInvalid(object.type, validIdOrTypePattern)) {
         return new HoodieObjectTypeError({
           type: object.type,
@@ -99,7 +108,9 @@ function hoodieStoreApi(hoodie, options) {
           rules: validIdOrTypeRules
         });
       }
+
     };
+
   }
 
   // Save
@@ -117,18 +128,24 @@ function hoodieStoreApi(hoodie, options) {
   //
   api.save = function save(type, id, properties, options) {
 
-    if ( options ) {
-      options = $.extend(true, {}, options);
+    if (options) {
+      options = extend(true, {}, options);
     } else {
       options = {};
     }
 
     // don't mess with passed object
-    var object = $.extend(true, {}, properties, {type: type, id: id});
+    var object = extend(true, {}, properties, {
+      type: type,
+      id: id
+    });
 
     // validations
     var error = api.validate(object, options || {});
-    if(error) { return hoodie.rejectWith(error); }
+
+    if (error) {
+      return hoodie.rejectWith(error);
+    }
 
     return decoratePromise( backend.save(object, options || {}) );
   };
@@ -147,6 +164,7 @@ function hoodieStoreApi(hoodie, options) {
     }
 
     options = options || {};
+
     return api.save(type, properties.id, properties, options);
   };
 
@@ -176,7 +194,7 @@ function hoodieStoreApi(hoodie, options) {
 
     function handleNotFound() {
       var newProperties;
-      newProperties = $.extend(true, {
+      newProperties = extend(true, {
         id: id
       }, properties);
       return api.add(type, newProperties);
@@ -196,7 +214,6 @@ function hoodieStoreApi(hoodie, options) {
   // Can be optionally filtered by a type or a function
   //
   api.findAll = function findAll(type, options) {
-
     return decoratePromise( backend.findAll(type, options) );
   };
 
@@ -221,7 +238,7 @@ function hoodieStoreApi(hoodie, options) {
       var changedProperties, newObj, value;
 
       // normalize input
-      newObj = $.extend(true, {}, currentObject);
+      newObj = extend(true, {}, currentObject);
 
       if (typeof objectUpdate === 'function') {
         objectUpdate = objectUpdate(newObj);
@@ -272,11 +289,15 @@ function hoodieStoreApi(hoodie, options) {
   //
   api.updateOrAdd = function updateOrAdd(type, id, objectUpdate, options) {
     function handleNotFound() {
-      var properties = $.extend(true, {}, objectUpdate, {id: id});
+      var properties = extend(true, {}, objectUpdate, {
+        id: id
+      });
+
       return api.add(type, properties, options);
     }
 
     var promise = api.update(type, id, objectUpdate, options).then(null, handleNotFound);
+
     return decoratePromise( promise );
   };
 
@@ -365,7 +386,7 @@ function hoodieStoreApi(hoodie, options) {
 
   // extend promises returned by store.api
   api.decoratePromises = function decoratePromises(methods) {
-    return $.extend(promiseApi, methods);
+    return extend(promiseApi, methods);
   };
 
 
@@ -397,7 +418,7 @@ function hoodieStoreApi(hoodie, options) {
 
   //
   function decoratePromise(promise) {
-    return $.extend(promise, promiseApi);
+    return extend(promise, promiseApi);
   }
 
   return api;

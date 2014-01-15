@@ -5,7 +5,7 @@
 // are allowed for object types, plus must start
 // with a letter.
 //
-var HoodieError = require('../error');
+var HoodieError = require('./error');
 
 //
 function HoodieObjectTypeError(properties) {

@@ -6,6 +6,8 @@ var hoodieStoreApi = require('./store');
 var HoodieObjectTypeError = require('./error/object_type');
 var HoodieObjectIdError = require('./error/object_id');
 
+var extend = require('extend');
+
 //
 function hoodieStore (hoodie) {
 
@@ -353,7 +355,11 @@ function hoodieStore (hoodie) {
       });
     }
 
-    if (arguments.length > 0 && HoodieObjectIdError.isInvalid(object.id)) {
+    if (!object.id) {
+      return;
+    }
+
+    if (HoodieObjectIdError.isInvalid(object.id)) {
       return new HoodieObjectIdError({
         id: object.id
       });
@@ -577,7 +583,7 @@ function hoodieStore (hoodie) {
     key = '' + type + '/' + id;
 
     if (object) {
-      $.extend(object, {
+      extend(object, {
         type: type,
         id: id
       });
@@ -586,7 +592,7 @@ function hoodieStore (hoodie) {
 
       if (options.remote) {
         clearChanged(type, id);
-        cachedObject[key] = $.extend(true, {}, object);
+        cachedObject[key] = extend(true, {}, object);
         return cachedObject[key];
       }
 
@@ -762,7 +768,7 @@ function hoodieStore (hoodie) {
 
   //
   // all local changes get bulk pushed. For each object with local
-  // changes that has been pushed we  trigger a sync event
+  // changes that has been pushed we trigger a sync event
   function handlePushedObject(object) {
     triggerEvents('sync', object);
   }
